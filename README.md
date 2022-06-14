@@ -1,7 +1,5 @@
 # Communities to Clean API Hub
 
----
-
 ## Description
 
 A data aggregation platform that combines various data sources to aid in the development of renewable energy. This project is specifically meant to assist local community leaders in making decisions without expensive siting and consultation.
