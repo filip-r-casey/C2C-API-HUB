@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
 const axios = require("axios");
+const path = require("path");
 
 require("dotenv").config();
 
@@ -11,6 +12,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
+app.set("views", path.join(__dirname, "/src/views"));
 app.set("view engine", "ejs"); //setting view
 app.get("/", function (req, res) {
   res.render("pages/index");
@@ -123,6 +125,7 @@ app.post("/api/search", function (req, res) {
     res.render("pages/errors", { NASA: null, WIND: null });
   }
 });
+
 app.listen(3000, function () {
   console.log("Server started on port 3000");
 });

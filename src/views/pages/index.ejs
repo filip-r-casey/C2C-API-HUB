@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('../partials/head.ejs') %>
+  </head>
+  <body>
+    <%- include('../partials/header.ejs') %>
+    <h1>C2C API Hub</h1>
+    <form action="/api/search" method="POST">
+      <div class="card w-50 p-3">
+        <div class="form-group">
+          <label for="lat"
+            >Latitude<abbr title="required" aria-label="required"
+              >*</abbr
+            ></label
+          >
+          <input class="form-control" id="lat" name="Latitude" />
+          <small id="degreeInfo" form="form-text text-muted"
+            >Coordinates are formatted with decimal points, not minutes</small
+          >
+        </div>
+        <div class="form-group">
+          <label for="lon"
+            >Longitude<abbr title="required" aria-label="required"
+              >*</abbr
+            ></label
+          >
+          <input class="form-control" id="lon" name="Longitude" />
+          <small id="degreeInfo" form="form-text text-muted"
+            >Coordinates are formatted with decimal points, not minutes</small
+          >
+        </div>
+        <div class="form-group">
+          <label for="hub"
+            >Hub Height<abbr title="required" aria-label="required"
+              >*</abbr
+            ></label
+          >
+          <input class="form-control" id="hub" name="HubHeight" />
+          <small id="unitInfo" form="form-text text-muted"
+            >Height of turbine above the ground in meters</small
+          >
+        </div>
+        <div class="form-group">
+          <label for="windSurface"
+            >Wind Surface<abbr title="required" aria-label="required"
+              >*</abbr
+            ></label
+          >
+          <select class="form-control" id="windSurface" name="WindSurface">
+            <option value="unknown">unknown</option>
+            <option value="vegtype_1">vegtype_1</option>
+            <option value="vegtype_2">vegtype_2</option>
+            <option value="vegtype_3">vegtype_3</option>
+            <option value="vegtype_4">vegtype_4</option>
+            <option value="vegtype_5">vegtype_5</option>
+            <option value="vegtype_6">vegtype_6</option>
+            <option value="vegtype_7">vegtype_7</option>
+            <option value="vegtype_8">vegtype_8</option>
+            <option value="vegtype_9">vegtype_9</option>
+            <option value="vegtype_10">vegtype_10</option>
+            <option value="vegtype_11">vegtype_11</option>
+            <option value="vegtype_12">vegtype_12</option>
+            <option value="vegtype_20">vegtype_20</option>
+            <option value="seaice">seaice</option>
+            <option value="openwater">openwater</option>
+            <option value="airportice">airportice</option>
+            <option value="airportgrass">airportgrass</option>
+          </select>
+          <small id="windSurfaceInfo" form="form-text text-muted"
+            >Based on the NASA Corrected Wind Speed calculation. Specifications
+            can be found
+            <a
+              href="https://power.larc.nasa.gov/docs/methodology/meteorology/wind/#corrected-wind-speed"
+              >here.</a
+            ></small
+          >
+        </div>
+        <label for="startDate"
+          >Start Date<abbr title="required" aria-label="required"
+            >*</abbr
+          ></label
+        >
+        <input class="form-control" id="startDate" name="start" type="date" />
+        <label for="endDate"
+          >End Date<abbr title="required" aria-label="required">*</abbr></label
+        >
+        <input class="form-control" id="endDate" name="end" type="date" />
+        <input class="form-control" type="submit" />
+      </div>
+    </form>
+  </body>
+  <%- include('../partials/footer.ejs') %>
+</html>
