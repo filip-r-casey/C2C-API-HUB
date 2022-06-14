@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('../partials/head.ejs') %>
+  </head>
+  <body>
+    <%- include('../partials/header.ejs') %> <% if (NASA == null && WIND ==
+    null) { %>
+    <h2>
+      No compatible data sources. Review the requirements of the data sources
+      and meet at least one of the conditions to get a response
+    </h2>
+    <% } else { %>
+    <h2>One or multiple errors ocurred</h2>
+    <p>
+      Note: this tool aims to resolve known errors before a request is sent.
+      This means that the compatibility of your request is evaluated against the
+      various data sources. However, on occasion, these errors are not or cannot
+      be caught before hand. In that case, only one of those errors will be
+      displayed here at a time.
+    </p>
+    <% } %> <% if (NASA != null) { %>
+    <h3>NASA Power Data</h3>
+    <%- NASA %> <% } %> <% if (WIND != null) { %>
+    <h3>Wind Toolkit Data</h3>
+    <%- WIND %> <% } %>
+  </body>
+  <%- include('../partials/footer.ejs') %>
+</html>
