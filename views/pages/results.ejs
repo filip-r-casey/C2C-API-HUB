@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('../partials/head.ejs') %>
+  </head>
+  <body>
+    <%- include('../partials/header.ejs') %> <% if (NASA_ERR != null) { %>
+    <h2>NASA Errors</h2>
+    <%- NASA_ERR %> <% } else {%>
+    <h2>NASA Power Data</h2>
+    <% for(const [key, value] of Object.entries(NASA)) { %> <%-key + " " +
+    value%> <% } }%> <% if (WIND_ERR != null) { %>
+    <h2>Wind Toolkit Errors</h2>
+    <%- WIND_ERR %> <% } else {%>
+    <h2>Wind Toolkit Data</h2>
+    <p>
+      Note: Download link is subject to data access time. Allow more time for
+      greater time resolution and longer periods of time
+    </p>
+    <a href="<%- WIND %>">Download Link</a> <% } %>
+  </body>
+  <%- include('../partials/footer.ejs') %>
+</html>
