@@ -8,7 +8,7 @@
     <h1>C2C API Hub</h1>
     <form action="/api/search" method="POST">
       <div class="card w-50 p-3">
-        <div class="form-group">
+        <div class="mb-3">
           <label for="lat"
             >Latitude<abbr title="required" aria-label="required"
               >*</abbr
@@ -19,7 +19,7 @@
             >Coordinates are formatted with decimal points, not minutes</small
           >
         </div>
-        <div class="form-group">
+        <div class="mb-3">
           <label for="lon"
             >Longitude<abbr title="required" aria-label="required"
               >*</abbr
@@ -30,7 +30,7 @@
             >Coordinates are formatted with decimal points, not minutes</small
           >
         </div>
-        <div class="form-group">
+        <div class="mb-3">
           <label for="hub"
             >Hub Height<abbr title="required" aria-label="required"
               >*</abbr
@@ -41,7 +41,7 @@
             >Height of turbine above the ground in meters</small
           >
         </div>
-        <div class="form-group">
+        <div class="mb-3">
           <label for="windSurface"
             >Wind Surface<abbr title="required" aria-label="required"
               >*</abbr
@@ -76,17 +76,70 @@
             ></small
           >
         </div>
-        <label for="startDate"
-          >Start Date<abbr title="required" aria-label="required"
-            >*</abbr
-          ></label
-        >
-        <input class="form-control" id="startDate" name="start" type="date" />
-        <label for="endDate"
-          >End Date<abbr title="required" aria-label="required">*</abbr></label
-        >
-        <input class="form-control" id="endDate" name="end" type="date" />
-        <input class="form-control" type="submit" />
+        <div class="mb-3">
+          <label for="startDate"
+            >Start Date<abbr title="required" aria-label="required"
+              >*</abbr
+            ></label
+          >
+          <input class="form-control" id="startDate" name="start" type="date" />
+        </div>
+        <div class="mb-3">
+          <label for="endDate"
+            >End Date<abbr title="required" aria-label="required"
+              >*</abbr
+            ></label
+          >
+          <input class="form-control" id="endDate" name="end" type="date" />
+        </div>
+        <div class="mb-3">
+          <p>
+            <button
+              class="btn btn-primary"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseWeather"
+              aria-expanded="false"
+              aria-controls="collapseWeather"
+            >
+              Open Weather (Experimental)
+            </button>
+          </p>
+          <div class="collapse" id="collapseWeather">
+            <div class="card card-body">
+              <p>
+                Currently Open Weather support is limited. It is not enabled by
+                default, because a historical query requires multiple API calls.
+                As a result, for large periods of time with small time sets,
+                limits can be met incredibly quickly. If this app is being run
+                in a development environment, then <b>your</b> API key is being
+                used for this, so be careful.
+                <b>Each time step results in an API call</b>
+              </p>
+              <div class="mb-3 form-check">
+                <input
+                  name="openWeather"
+                  type="checkbox"
+                  class="form-check-input"
+                  id="weatherCheck"
+                />
+                <label class="form-check-label" for="weatherCheck"
+                  >Access Open Weather Data</label
+                >
+              </div>
+              <div class="mb-3">
+                <label for="timeStep" class="form-label">Time Step</label>
+                <input
+                  name="timeStep"
+                  id="timeStep"
+                  type="number"
+                  class="form-control"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <input class="btn btn-primary" type="submit" value="Submit" />
       </div>
     </form>
   </body>

@@ -70,7 +70,7 @@ This app sources information from the following APIS:
 * [NASA POWER](https://power.larc.nasa.gov/docs/services/api/)
 * [Wind Toolkit](https://www.nrel.gov/grid/wind-toolkit.html)
 * [TAP](https://dw-tap.nrel.gov/#api-Wind_Speed)
-* [Open Weather](https://openweathermap.org/api)
+* [Open Weather](https://openweathermap.org/api) - Support TBD due to cost restrictions
 * [National Weather Service](https://www.weather.gov/documentation/services-web-api#/default/station_observation_list)
 * [NCEI](https://www.ncei.noaa.gov/support/access-data-service-api-user-documentation)
   
