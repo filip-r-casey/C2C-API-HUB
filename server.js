@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const app = express();
 const axios = require("axios");
 const path = require("path");
+const { response } = require("express");
 
 require("dotenv").config();
 
@@ -26,6 +27,8 @@ app.post("/api/search", function (req, res) {
   var end_date = req.body.end;
   var begin_year = new Date(start_date).getFullYear();
   var end_year = new Date(end_date).getFullYear();
+  var open_weather_bool = req.body.openWeather;
+  var time_step = req.body.timeStep;
 
   // NASA POWER
   var formatted_start_date =
@@ -73,13 +76,26 @@ app.post("/api/search", function (req, res) {
   );
 
   // Open Weather
-  var open_weather_key = process.env.OPEN_WEATHER_API_KEY;
-  var open_weather = axios.get(
-    `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&appid=${open_weather_key}`
-  );
+  if (open_weather_bool) {
+    var open_weather_key = process.env.OPEN_WEATHER_API_KEY;
+    var first_date = new Date(start_date).getTime();
+    var last_date = new Date(end_date).getTime();
+    var diffTime = Math.abs(last_date - first_date);
+    var increment_time = diffTime / (time_step * 1000);
+    var open_weather_requests = [];
+    var open_weather_data = {};
+    console.log(first_date, last_date, increment_time);
+    for (var i = first_date; i < last_date; i += increment_time) {
+      open_weather_requests.push(
+        axios.get(
+          `https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=${lat}&lon=${lon}&dt=${i}&appid=${open_weather_key}`
+        )
+      );
+    }
+  }
 
   // Find compatible sources
-  var compatible_sources = [nasa, wind_toolkit, open_weather];
+  var compatible_sources = [nasa, wind_toolkit];
   if (begin_year < 2007 || end_year > 2014) {
     compatible_sources.pop(wind_toolkit);
   }
@@ -87,33 +103,53 @@ app.post("/api/search", function (req, res) {
     compatible_sources.pop(nasa);
   }
 
+  if (open_weather_bool) {
+    compatible_sources.push(open_weather_requests);
+    compatible_sources = compatible_sources.flat();
+  }
+  var nasa_idx = compatible_sources.indexOf(nasa);
+  var wind_toolkit_idx = compatible_sources.indexOf(wind_toolkit);
+
   // API Call
   if (compatible_sources.length > 0) {
     Promise.allSettled(compatible_sources).then((responses) => {
-      if (compatible_sources.indexOf(nasa) >= 0) {
-        var nasa_data = responses[compatible_sources.indexOf(nasa)];
+      if (nasa_idx >= 0) {
+        var nasa_data = responses[nasa_idx];
         if (nasa_data.status != "fulfilled") {
           var nasa_errors = nasa_data.reason.response.data.errors;
         } else {
-          nasa_data =
-            responses[compatible_sources.indexOf(nasa)].value.data.properties
-              .parameter.WSC;
+          nasa_data = responses[nasa_idx].value.data.properties.parameter.WSC;
         }
+        compatible_sources.pop(nasa_idx);
       }
-      if (compatible_sources.indexOf(wind_toolkit >= 0)) {
-        var wind_toolkit_data =
-          responses[compatible_sources.indexOf(wind_toolkit)];
-        wind_toolkit_data = wind_toolkit_data.value.data.outputs.downloadUrl;
-        if (wind_toolkit_data.status == "rejected") {
+      if (wind_toolkit_idx >= 0) {
+        var wind_toolkit_data = responses[wind_toolkit_idx];
+        if (wind_toolkit_data.status == "fulfilled") {
+          wind_toolkit_data = wind_toolkit_data.value.data.outputs.downloadUrl;
+        } else {
           var wind_toolkit_errors =
             wind_toolkit_data.reason.response.data.errors;
         }
+        compatible_sources.pop(wind_toolkit_idx);
       }
-      if (compatible_sources.indexOf(open_weather >= 0)) {
-        var open_weather_data =
-          responses[compatible_sources.indexOf(open_weather)];
-        console.log(open_weather_data);
+
+      if (open_weather_bool) {
+        var open_weather_promises = [];
+        for (var i = 0; i < responses.length; i++) {
+          if (
+            responses[i].status == "fulfilled" &&
+            responses[i].value.headers.server == "openresty"
+          ) {
+            open_weather_promises.push(responses[i]);
+          }
+        }
+        for (var i = 0; i < open_weather_promises.length; i++) {
+          open_weather_data[open_weather_promises[i].value.data.data.dt] =
+            (open_weather_promises[i].value.data.data.wind_speed,
+            open_weather_promises[i].value.data.data.wind_deg);
+        }
       }
+
       res.render("pages/results", {
         NASA: nasa_data,
         NASA_ERR: nasa_errors,
