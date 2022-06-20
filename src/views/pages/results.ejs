@@ -4,34 +4,35 @@
     <%- include('../partials/head.ejs') %>
   </head>
   <body>
-    <%- include('../partials/header.ejs') %> <% if (NASA_ERR != null) { %>
+    <%- include('../partials/header.ejs') %> <% if (NASA["errors"] != null) { %>
     <h2>NASA Errors</h2>
-    <%- NASA_ERR %> <% } else {%>
+    <%- NASA["errors"] %> <% } else {%>
     <h2>NASA Power Data</h2>
-    <% for(const [key, value] of Object.entries(NASA)) { %> <%-key + " " +
-    value%> <% } }%> <% if (WIND_ERR != null) { %>
+    <% for(const [key, value] of Object.entries(NASA["data"])) { %> <%-key + " " +
+    value%> <% } }%> <% if (WIND["errors"] != null) { %>
     <h2>Wind Toolkit Errors</h2>
-    <%- WIND_ERR %> <% } else {%>
+    <%- WIND["errors"] %> <% } else {%>
     <h2>Wind Toolkit Data</h2>
     <p>
       Note: Download link is subject to data access time. Allow more time for
       greater time resolution and longer periods of time
     </p>
-    <a href="<%- WIND %>">Download Link</a> <% } %> <% if (OPEN_WEATHER != null
-    && OPEN_WEATHER_ERR != null) { %> <% if (OPEN_WEATHER_ERR.length > 0) { %>
+    <a href="<%- WIND["data"] %>">Download Link</a> <% } %> <% if (OPEN_WEATHER !=
+    null && OPEN_WEATHER["errors"] != null) { %> <% if
+    (OPEN_WEATHER["errors"].length > 0) { %>
     <h2>Open Weather Errors</h2>
-    <%- OPEN_WEATHER_ERR %> <% } else { %>
+    <%- OPEN_WEATHER["errors"] %> <% } else { %>
     <h2>Open Weather Data</h2>
-    <% for(const [key,value] of Object.entries(OPEN_WEATHER)) { %> <%- [key,
-    value["wind_speed"]] %> <%- [key, value["wind_direction"]] %> <% } } }%> <%
-    if (NWS_ERR != null) { %>
+    <% for(const [key,value] of Object.entries(OPEN_WEATHER["data"])) { %> <%-
+    [key, value["wind_speed"]] %> <%- [key, value["wind_direction"]] %> <% } }
+    }%> <% if (NWS["errors"] != null) { %>
     <h2>National Weather Service Errors</h2>
-    <% for(var i = 0; i < NWS_ERR.length; i++) { %> <%- NWS_ERR[i].title + ": "
-    + NWS_ERR[i].detail %> <% } } else { %>
+    <% for(var i = 0; i < NWS["errors"].length; i++) { %> <%- NWS["errors"][i].title +
+    ": " + NWS["errors"][i].detail %> <% } } else { %>
     <h2>National Weather Service Data</h2>
-    <% for(const [station, data] of Object.entries(NWS)) { for(const [time,
-    wind] of Object.entries(data)) { %> <%- [station, time, wind["wind_speed"],
-    wind["wind_direction"]] %> <% } } } %>
+    <% for(const [station, data] of Object.entries(NWS["data"])) { for(const
+    [time, wind] of Object.entries(data)) { %> <%- [station, time,
+    wind["wind_speed"], wind["wind_direction"]] %> <% } } } %>
   </body>
   <%- include('../partials/footer.ejs') %>
 </html>

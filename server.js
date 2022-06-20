@@ -23,6 +23,31 @@ app.set("view engine", "ejs"); //setting view
 app.get("/", function (req, res) {
   res.render("pages/index");
 });
+
+app.post("/search", function (req, res) {
+  var lat = req.body.Latitude;
+  var lon = req.body.Longitude;
+  var height = req.body.HubHeight;
+  var wind_surface = req.body.WindSurface;
+  var start_date = req.body.start;
+  var end_date = req.body.end;
+  var open_weather_bool = req.body.openWeather;
+  var time_step = req.body.timeStep;
+  axios
+    .post("http://0.0.0.0:3000/api/search", {
+      Latitude: lat,
+      Longitude: lon,
+      HubHeight: height,
+      WindSurface: wind_surface,
+      start: start_date,
+      end: end_date,
+      openWeather: open_weather_bool,
+      timeStep: time_step,
+    })
+    .then((response) => {
+      res.render("pages/results", response["data"]);
+    });
+});
 app.post("/api/search", function (req, res) {
   var lat = req.body.Latitude;
   var lon = req.body.Longitude;
@@ -75,7 +100,7 @@ app.post("/api/search", function (req, res) {
     `https://power.larc.nasa.gov/api/temporal/hourly/point?community=RE&parameters=${param},WSC&latitude=${lat}&longitude=${lon}&start=${formatted_start_date}&end=${formatted_end_date}&format=JSON&wind-elevation=${height}&wind-surface=${wind_surface}`
   );
   var wind_toolkit = axios.get(
-    `https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.json?api_key=${wind_key}&wkt=POINT(${lat} ${lon})&attributes=windspeed_${closest}m,winddirection_${closest}m&names=${spacedList(
+    `https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.json?api_key=${wind_key}&wkt=POINT(${lon} ${lat})&attributes=windspeed_${closest}m,winddirection_${closest}m&names=${spacedList(
       yearRange(begin_year, end_year)
     )}&email=${email}`
   );
@@ -107,8 +132,9 @@ app.post("/api/search", function (req, res) {
   var compatible_sources = { nasa: nasa, wind_toolkit: wind_toolkit, nws: nws };
 
   if (open_weather_bool) {
-    compatible_sources.push(open_weather_requests);
-    compatible_sources = compatible_sources.flat();
+    for (let i = 0; i < open_weather_requests.length; i++) {
+      compatible_sources["open_weather_" + i] = open_weather_requests[i];
+    }
   }
   // API Call
   if (Object.keys(compatible_sources).length > 0) {
@@ -169,16 +195,25 @@ app.post("/api/search", function (req, res) {
             nws_data = responses[nws_idx].value.data;
           }
         }
-        res.render("pages/results", {
-          NASA: nasa_data,
-          NASA_ERR: nasa_errors,
-          WIND: wind_toolkit_data,
-          WIND_ERR: wind_toolkit_errors,
-          OPEN_WEATHER: open_weather_data,
-          OPEN_WEATHER_ERR: open_weather_errors,
-          NWS: nws_data,
-          NWS_ERR: nws_err,
-        });
+        json_response = {
+          NASA: {
+            data: nasa_data,
+            errors: nasa_errors,
+          },
+          WIND: {
+            data: wind_toolkit_data,
+            errors: wind_toolkit_errors,
+          },
+          OPEN_WEATHER: {
+            data: open_weather_data,
+            errors: open_weather_errors,
+          },
+          NWS: {
+            data: nws_data,
+            errors: nws_err,
+          },
+        };
+        res.json(json_response);
       }
     );
   } else {
