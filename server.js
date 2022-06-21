@@ -128,8 +128,18 @@ app.post("/api/search", function (req, res) {
     `http://0.0.0.0:3000/api/nws?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
   );
 
+  // Alaska Energy Authority API
+  aea = axios.get(
+    `172.17.0.3/api/aea?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
+  );
+
   // Find compatible sources
-  var compatible_sources = { nasa: nasa, wind_toolkit: wind_toolkit, nws: nws };
+  var compatible_sources = {
+    nasa: nasa,
+    wind_toolkit: wind_toolkit,
+    nws: nws,
+    aea: aea,
+  };
 
   if (open_weather_bool) {
     for (let i = 0; i < open_weather_requests.length; i++) {
@@ -195,6 +205,18 @@ app.post("/api/search", function (req, res) {
             nws_data = responses[nws_idx].value.data;
           }
         }
+        if ("aea" in compatible_sources) {
+          var aea_err;
+          var aea_data;
+          var aea_idx = Object.keys(compatible_sources).indexOf("aea");
+          console.log(responses[aea_idx]);
+          if (responses[aea_idx].status == "rejected") {
+            aea_err = responses[aea_idx].reason.response.data.errors;
+          } else {
+            aea_data = responses[aea_idx].value.data;
+          }
+          console.log(responses[aea_idx]);
+        }
         json_response = {
           NASA: {
             data: nasa_data,
@@ -211,6 +233,10 @@ app.post("/api/search", function (req, res) {
           NWS: {
             data: nws_data,
             errors: nws_err,
+          },
+          AEA: {
+            data: aea_data,
+            errors: aea_err,
           },
         };
         res.json(json_response);
@@ -313,6 +339,24 @@ app.get("/api/nws", function (req, res) {
       };
       res.type("application/vnd.api+json");
       res.status(404).json(nws_response);
+    });
+});
+
+app.get("/api/aea", function (req, res) {
+  var start = req.query.start;
+  var end = req.query.end;
+  var lat = parseInt(req.query.lat);
+  var lon = parseInt(req.query.lon);
+  var lat_threshold = parseInt(req.query.lat_threshold) || 0;
+  var lon_threshold = parseInt(req.query.lon_threshold) || 0;
+
+  axios
+    .get(`http://0.0.0.0:8080/wind_speed?lat=${lat}&lon=${lon}`)
+    .then((response) => {
+      res.json(response);
+    })
+    .catch((error) => {
+      console.log(error);
     });
 });
 
