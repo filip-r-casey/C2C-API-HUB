@@ -33,6 +33,12 @@
     <% for(const [station, data] of Object.entries(NWS["data"])) { for(const
     [time, wind] of Object.entries(data)) { %> <%- [station, time,
     wind["wind_speed"], wind["wind_direction"]] %> <% } } } %>
+    <% if (AEA["errors"] != null) { %>
+     <h2>Alaska Energy Authority Errors</h2>
+     <%- AEA["errors"] %> 
+    <% } else { %> <h2>Alaska Energy Authority Data</h2> <% if (Object.entries(AEA["data"]).length == 0) { %>
+     <p>No sites available in this area</p>
+    <% } else { %><%- AEA["data"] %> <%} } %>
   </body>
   <%- include('../partials/footer.ejs') %>
 </html>
