@@ -2,13 +2,19 @@ name: Tests CI
 
 on: [push, pull_request]
 
-env:
-  NODE_ENV: test
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: create env file
+        run: |
+          touch .env
+          echo NASA_POWER_API_KEY=${{ secrets.NASA_POWER_API_KEY }} >> .env
+          echo WIND_TOOLKIT_API_KEY=${{ secrets.WIND_TOOLKIT_API_KEY }} >> .env
+          echo OPEN_WEATHER_API_KEY=${{ secrets.OPEN_WEATHER_API_KEY }} >> .env
+          echo EMAIL=${{ secrets.EMAIL }} >> .env
+          echo NODE_ENV=test >> .env
       - name: Test using Node.js
         uses: actions/setup-node@v1
         with:
