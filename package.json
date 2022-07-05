@@ -4,16 +4,21 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "test": "jest",
+    "start": "nodemon server.js"
   },
   "dependencies": {
-    "express": "^4.16.1",
-    "ejs": "^3.1.8",
-    "body-parser": "^1.20.0",
     "axios": "^0.27.2",
+    "body-parser": "^1.20.0",
     "dotenv": "^16.0.1",
+    "ejs": "^3.1.8",
+    "express": "^4.16.1",
     "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19",
+    "jest": "^28.1.2",
+    "supertest": "^6.2.4"
   },
   "author": "",
   "license": "ISC"
