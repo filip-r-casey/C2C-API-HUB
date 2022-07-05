@@ -48,17 +48,31 @@ app.post("/search", function (req, res) {
       res.render("pages/results", response["data"]);
     });
 });
-app.post("/api/search", function (req, res) {
-  var lat = req.body.Latitude;
-  var lon = req.body.Longitude;
-  var height = req.body.HubHeight;
-  var wind_surface = req.body.WindSurface;
-  var start_date = req.body.start;
-  var end_date = req.body.end;
+
+app.all("/api/search", function (req, res) {
+  if (req.method == "GET") {
+    var lat = req.query.Latitude;
+    var lon = req.query.Longitude;
+    var height = req.query.HubHeight;
+    var wind_surface = req.query.WindSurface;
+    var start_date = req.query.start;
+    var end_date = req.query.end;
+    var open_weather_bool = req.query.openWeather;
+    var time_step = req.query.timeStep;
+  } else if (req.method == "POST") {
+    var lat = req.body.Latitude;
+    var lon = req.body.Longitude;
+    var height = req.body.HubHeight;
+    var wind_surface = req.body.WindSurface;
+    var start_date = req.body.start;
+    var end_date = req.body.end;
+    var open_weather_bool = req.body.openWeather;
+    var time_step = req.body.timeStep;
+  } else {
+    res.json({ error: "Incompatible method" });
+  }
   var begin_year = new Date(start_date).getFullYear();
   var end_year = new Date(end_date).getFullYear();
-  var open_weather_bool = req.body.openWeather;
-  var time_step = req.body.timeStep;
   var wind_key = process.env.WIND_TOOLKIT_API_KEY;
   var email = process.env.EMAIL;
   var open_weather_key = process.env.OPEN_WEATHER_API_KEY;
@@ -125,20 +139,20 @@ app.post("/api/search", function (req, res) {
 
   // National Weather Service
   nws = axios.get(
-    `http://0.0.0.0:3000/api/nws?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
+    `http://0.0.0.0:3000/api/search/nws?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
   );
 
   // Alaska Energy Authority API
-  aea = axios.get(
-    `172.17.0.3/api/aea?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
-  );
+  // aea = axios.get(
+  //   `172.17.0.3/api/search/aea?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
+  // );
 
   // Find compatible sources
   var compatible_sources = {
     nasa: nasa,
     wind_toolkit: wind_toolkit,
     nws: nws,
-    aea: aea,
+    // aea: aea,
   };
 
   if (open_weather_bool) {
@@ -209,13 +223,11 @@ app.post("/api/search", function (req, res) {
           var aea_err;
           var aea_data;
           var aea_idx = Object.keys(compatible_sources).indexOf("aea");
-          console.log(responses[aea_idx]);
           if (responses[aea_idx].status == "rejected") {
             aea_err = responses[aea_idx].reason.response.data.errors;
           } else {
             aea_data = responses[aea_idx].value.data;
           }
-          console.log(responses[aea_idx]);
         }
         json_response = {
           NASA: {
@@ -247,12 +259,48 @@ app.post("/api/search", function (req, res) {
   }
 });
 
-app.get("/api/nws", function (req, res) {
-  var lat = req.query.lat;
-  var lon = req.query.lon;
-  var height = req.query.heigh;
-  var start_date = req.query.start_date + "T00:00:00Z";
-  var end_date = req.query.end_date + "T00:00:00Z";
+app.get("/api/search/aea", function (req, res) {
+  var start = req.query.start;
+  var end = req.query.end;
+  var lat = parseInt(req.query.lat);
+  var lon = parseInt(req.query.lon);
+  var lat_threshold = parseInt(req.query.lat_threshold) || 0;
+  var lon_threshold = parseInt(req.query.lon_threshold) || 0;
+
+  axios
+    .get(`http://0.0.0.0:8080/wind_speed?lat=${lat}&lon=${lon}`)
+    .then((response) => {
+      res.json(response);
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+});
+
+app.all("/api/search/nws", function (req, res) {
+  if (req.method == "GET") {
+    var lat = req.query.lat;
+    var lon = req.query.lon;
+    var height = req.query.height;
+    if (req.query.start_date.at(-1) != "Z") {
+      var start_date = req.query.start_date + "T00:00:00Z";
+      var end_date = req.query.end_date + "T00:00:00Z";
+    } else {
+      var start_date = req.query.start_date;
+      var end_date = req.query.end_date;
+    }
+  } else if (req.method == "POST") {
+    var lat = req.body.lat;
+    var lon = req.body.lon;
+    var height = req.body.height;
+    if (req.body.start_date.at(-1) != "Z") {
+      var start_date = req.body.start_date + "T00:00:00Z";
+      var end_date = req.body.end_date + "T00:00:00Z";
+    } else {
+      var start_date = req.body.start_date;
+      var end_date = req.body.end_date;
+    }
+  }
   var nws_wind_data = {};
   var nws = axios
     .get(`https://api.weather.gov/points/${lat},${lon}`)
@@ -268,11 +316,12 @@ app.get("/api/nws", function (req, res) {
           ) {
             nws_stations.push(
               axios.get(
-                `${station_response.data.observationStations[i]}/observations/?start=${start_date}&end=${end_date}`
+                `${station_response.data.observationStations[i]}/observations?start=${start_date}&end=${end_date}`
               )
             );
           }
           Promise.allSettled(nws_stations).then((responses) => {
+            console.log(responses[0].value);
             var data_modified = false;
             for (let i = 0; i < responses.length; i++) {
               if (responses[i].value.data.features.length > 0) {
@@ -341,25 +390,9 @@ app.get("/api/nws", function (req, res) {
       res.status(404).json(nws_response);
     });
 });
-
-app.get("/api/aea", function (req, res) {
-  var start = req.query.start;
-  var end = req.query.end;
-  var lat = parseInt(req.query.lat);
-  var lon = parseInt(req.query.lon);
-  var lat_threshold = parseInt(req.query.lat_threshold) || 0;
-  var lon_threshold = parseInt(req.query.lon_threshold) || 0;
-
-  axios
-    .get(`http://0.0.0.0:8080/wind_speed?lat=${lat}&lon=${lon}`)
-    .then((response) => {
-      res.json(response);
-    })
-    .catch((error) => {
-      console.log(error);
-    });
-});
-
-app.listen(3000, function () {
-  console.log("Server started on port 3000");
-});
+if (process.env.NODE_ENV !== "test") {
+  const server = app.listen(3000, function () {
+    console.log("Server started on port 3000");
+  });
+}
+module.exports = app;
