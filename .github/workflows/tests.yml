@@ -15,6 +15,7 @@ jobs:
           echo OPEN_WEATHER_API_KEY=${{ secrets.OPEN_WEATHER_API_KEY }} >> .env
           echo EMAIL=${{ secrets.EMAIL }} >> .env
           echo NODE_ENV=test >> .env
+          cat .env
       - name: Test using Node.js
         uses: actions/setup-node@v1
         with:
