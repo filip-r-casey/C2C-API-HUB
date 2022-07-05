@@ -2,6 +2,8 @@ name: Tests CI
 
 on: [push, pull_request]
 
+env:
+  NODE_ENV: test
 jobs:
   test:
     runs-on: ubuntu-latest
