@@ -8,13 +8,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: create env file
+        env: 
+          NASA: ${{ secrets.NASA_POWER_API_KEY }}
+          WIND: ${{ secrets.WIND_TOOLKIT_API_KEY }}
+          OPEN: ${{ secrets.OPEN_WEATHER_API_KEY }}
+          EMAIL: ${{ secrets.EMAIL }}
         run: |
           touch .env
-          echo NASA_POWER_API_KEY=${{ secrets.NASA_POWER_API_KEY }} >> .env
-          echo WIND_TOOLKIT_API_KEY=${{ secrets.WIND_TOOLKIT_API_KEY }} >> .env
-          echo OPEN_WEATHER_API_KEY=${{ secrets.OPEN_WEATHER_API_KEY }} >> .env
-          echo EMAIL=${{ secrets.EMAIL }} >> .env
-          echo NODE_ENV=test >> .env
+          echo NASA_POWER_API_KEY="$NASA" >> .env
+          echo WIND_TOOLKIT_API_KEY="$WIND" >> .env
+          echo OPEN_WEATHER_API_KEY="$OPEN" >> .env
+          echo EMAIL="$EMAIL" >> .env
+          echo NODE_ENV="test" >> .env
           cat .env
       - name: Test using Node.js
         uses: actions/setup-node@v1
