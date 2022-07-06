@@ -21,6 +21,7 @@ jobs:
           envkey_OPEN_WEATHER_API_KEY: $OPEN
           envkey_EMAIL: $EMAIL
           envkey_NODE_ENV: "test"
+        run: cat .env
       - name: Test using Node.js
         uses: actions/setup-node@v1
         with:
