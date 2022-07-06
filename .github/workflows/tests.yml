@@ -16,10 +16,10 @@ jobs:
           OPEN: ${{ secrets.OPEN_WEATHER_API_KEY }}
           EMAIL: ${{ secrets.EMAIL }}
         with:
-          envkey_NASA_POWER_API_KEY: $NASA
-          envkey_WIND_TOOLKIT_API_KEY: $WIND
-          envkey_OPEN_WEATHER_API_KEY: $OPEN
-          envkey_EMAIL: $EMAIL
+          envkey_NASA_POWER_API_KEY: ${{ secrets.NASA_POWER_API_KEY }}
+          envkey_WIND_TOOLKIT_API_KEY: ${{ secrets.WIND_TOOLKIT_API_KEY }}
+          envkey_OPEN_WEATHER_API_KEY: ${{ secrets.OPEN_WEATHER_API_KEY }}
+          envkey_EMAIL: ${{ secrets.EMAIL }}
           envkey_NODE_ENV: "test"
       - name: Check env
         run: cat .env
