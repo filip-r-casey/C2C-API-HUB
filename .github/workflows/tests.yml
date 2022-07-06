@@ -16,11 +16,11 @@ jobs:
           OPEN: ${{ secrets.OPEN_WEATHER_API_KEY }}
           EMAIL: ${{ secrets.EMAIL }}
         with:
-          NASA_POWER_API_KEY: $NASA
-          WIND_TOOLKIT_API_KEY: $WIND
-          OPEN_WEATHER_API_KEY: $OPEN
-          EMAIL: $EMAIL
-          NODE_ENV: "test"
+          envkey_NASA_POWER_API_KEY: $NASA
+          envkey_WIND_TOOLKIT_API_KEY: $WIND
+          envkey_OPEN_WEATHER_API_KEY: $OPEN
+          envkey_EMAIL: $EMAIL
+          envkey_NODE_ENV: "test"
       - name: Test using Node.js
         uses: actions/setup-node@v1
         with:
