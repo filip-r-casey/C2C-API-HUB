@@ -100,7 +100,6 @@ app.all("/api/search", function (req, res) {
     `http://0.0.0.0:3000/api/search/nws?Latitude=${lat}&Longitude=${lon}&start=${start_date}&end=${end_date}`
   );
 
-  console.log(nws);
   // Alaska Energy Authority API
   // aea = axios.get(
   //   `172.17.0.3/api/search/aea?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
@@ -461,28 +460,25 @@ app.get("/api/search/aea", function (req, res) {
       res.json(aea_response);
     })
     .catch((aea_error) => {
-      console.log(aea_error);
+      console.error(aea_error);
     });
 });
 
 app.all("/api/search/nws", function (req, res) {
   if (req.method == "GET") {
-    console.log("BEFORE AT");
     var lat = req.query.Latitude;
     var lon = req.query.Longitude;
-    if (req.query.start[req.query.start - 1] != "Z") {
-      console.log("AFTER AT");
+    if (req.query.start.charAt(req.query.start.length - 1) != "Z") {
       var start_date = req.query.start + "T00:00:00Z";
       var end_date = req.query.end + "T00:00:00Z";
     } else {
-      console.log("AFTER AT");
       var start_date = req.query.start;
       var end_date = req.query.end;
     }
   } else if (req.method == "POST") {
     var lat = req.body.Latitude;
     var lon = req.body.Longitude;
-    if (req.body.start[req.body.start - 1] != "Z") {
+    if (req.body.start.charAt(req.body.start.length - 1) != "Z") {
       var start_date = req.body.start + "T00:00:00Z";
       var end_date = req.body.end + "T00:00:00Z";
     } else {
@@ -529,7 +525,7 @@ app.all("/api/search/nws", function (req, res) {
                       title: responses[i].reason.response.title,
                       detail: {
                         parameterErrors:
-                          responses[i].reason.response.parameterErrors,
+                          responses[i].reason.response.data.parameterErrors,
                       },
                     },
                   ],
