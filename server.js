@@ -470,7 +470,7 @@ app.all("/api/search/nws", function (req, res) {
     console.log("BEFORE AT");
     var lat = req.query.Latitude;
     var lon = req.query.Longitude;
-    if (req.query.start.at(-1) != "Z") {
+    if (req.query.start[req.query.start - 1] != "Z") {
       console.log("AFTER AT");
       var start_date = req.query.start + "T00:00:00Z";
       var end_date = req.query.end + "T00:00:00Z";
@@ -482,7 +482,7 @@ app.all("/api/search/nws", function (req, res) {
   } else if (req.method == "POST") {
     var lat = req.body.Latitude;
     var lon = req.body.Longitude;
-    if (req.body.start.at(-1) != "Z") {
+    if (req.body.start[req.body.start - 1] != "Z") {
       var start_date = req.body.start + "T00:00:00Z";
       var end_date = req.body.end + "T00:00:00Z";
     } else {
