@@ -97,7 +97,7 @@ app.all("/api/search", function (req, res) {
     `http://0.0.0.0:3000/api/search/open_weather?Latitude=${lat}&Longitude=${lon}&HubHeight=${height}&start=${start_date}&end=${end_date}&timeStep=${time_step}`
   );
   var nws = axios.get(
-    `http://0.0.0.0:3000/api/search/nws?lat=${lat}&lon=${lon}&start_date=${start_date}&end_date=${end_date}`
+    `http://0.0.0.0:3000/api/search/nws?Latitude=${lat}&Longitude=${lon}&start=${start_date}&end=${end_date}`
   );
 
   console.log(nws);
@@ -467,27 +467,28 @@ app.get("/api/search/aea", function (req, res) {
 
 app.all("/api/search/nws", function (req, res) {
   if (req.method == "GET") {
-    var lat = req.query.lat;
-    var lon = req.query.lon;
-    if (req.query.start_date.at(-1) != "Z") {
-      var start_date = req.query.start_date + "T00:00:00Z";
-      var end_date = req.query.end_date + "T00:00:00Z";
+    var lat = req.query.Latitude;
+    var lon = req.query.Longitude;
+    if (req.query.start.at(-1) != "Z") {
+      var start_date = req.query.start + "T00:00:00Z";
+      var end_date = req.query.end + "T00:00:00Z";
     } else {
-      var start_date = req.query.start_date;
-      var end_date = req.query.end_date;
+      var start_date = req.query.start;
+      var end_date = req.query.end;
     }
   } else if (req.method == "POST") {
-    var lat = req.body.lat;
-    var lon = req.body.lon;
-    if (req.body.start_date.at(-1) != "Z") {
-      var start_date = req.body.start_date + "T00:00:00Z";
-      var end_date = req.body.end_date + "T00:00:00Z";
+    var lat = req.body.Latitude;
+    var lon = req.body.Longitude;
+    if (req.body.start.at(-1) != "Z") {
+      var start_date = req.body.start + "T00:00:00Z";
+      var end_date = req.body.end + "T00:00:00Z";
     } else {
-      var start_date = req.body.start_date;
-      var end_date = req.body.end_date;
+      var start_date = req.body.start;
+      var end_date = req.body.end;
     }
   }
   var nws_wind_data = {};
+  console.log("RAN");
   var nws = axios
     .get(`https://api.weather.gov/points/${lat},${lon}`)
     .then((response) => {
