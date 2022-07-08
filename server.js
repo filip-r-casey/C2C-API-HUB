@@ -5,7 +5,11 @@ const axios = require("axios");
 const path = require("path");
 const { response } = require("express");
 const exp = require("constants");
-const { yearRange, spacedList } = require("./src/scripts/utilities");
+const {
+  yearRange,
+  spacedList,
+  missingParameterMessage,
+} = require("./src/scripts/utilities");
 const { stat } = require("fs");
 
 require("dotenv").config();
@@ -22,6 +26,7 @@ app.use(
 app.use("/static/styles/", express.static(path.join(__dirname, "/src/styles")));
 app.set("views", path.join(__dirname, "/src/views"));
 app.set("view engine", "ejs"); //setting view
+
 app.get("/", function (req, res) {
   res.render("pages/index");
 });
@@ -299,37 +304,14 @@ app.get("/api/search/nasa_power", function (req, res) {
       });
   } else {
     var params = {
-      lat: lat,
-      lon: lon,
-      height: height,
-      wind_surface: wind_surface,
-      start_date: start_date,
-      end_date: end_date,
+      Latitude: lat,
+      Longitude: lon,
+      HubHeight: height,
+      windSurface: wind_surface,
+      start: start_date,
+      end: end_date,
     };
-    var missing_params = [];
-    for (const [key, value] of Object.entries(params)) {
-      if (value == null) {
-        missing_params.push(key);
-      }
-    }
-    if (missing_params.length == Object.keys(params).length) {
-      res.status(200);
-      res.json({
-        message:
-          "Welcome to the C2C NASA POWER endpoint. For information on using this endpoint, please address the documentation.",
-      });
-    } else {
-      res.status(400);
-      res.json({
-        errors: [
-          {
-            status: 400,
-            title: "Missing parameters",
-            detail: `Missing ${missing_params}`,
-          },
-        ],
-      });
-    }
+    missingParameterMessage(params, res);
   }
 });
 
@@ -486,165 +468,177 @@ app.all("/api/search/nws", function (req, res) {
       var end_date = req.body.end;
     }
   }
-  var nws_wind_data = {};
-  var config = {
-    headers: {
-      header1: "application/geo+json",
-    },
-  };
-  var nws = axios
-    .get(`https://api.weather.gov/points/${lat},${lon}`)
-    .then((response) => {
-      axios
-        .get(response.data.properties.observationStations)
-        .then((station_response) => {
-          var nws_stations_points = {};
-          var nws_stations = [];
-          for (
-            var i = 0;
-            i < station_response.data.observationStations.length;
-            i++
-          ) {
-            nws_stations_points[
-              station_response.data.features[i].properties.stationIdentifier
-            ] =
-              station_response.data.features[i].geometry.coordinates.reverse();
-            nws_stations.push(
-              axios.get(
-                `${station_response.data.observationStations[i]}/observations?start=${start_date}&end=${end_date}`
-              )
-            );
-          }
-          Promise.allSettled(nws_stations).then((responses) => {
-            for (let i = 0; i < responses.length; i++) {
-              if (responses[i].status == "rejected") {
-                var error_response = {
+  if (lat && lon && start_date && end_date) {
+    var nws_wind_data = {};
+    var config = {
+      headers: {
+        header1: "application/geo+json",
+      },
+    };
+    var nws = axios
+      .get(`https://api.weather.gov/points/${lat},${lon}`)
+      .then((response) => {
+        axios
+          .get(response.data.properties.observationStations)
+          .then((station_response) => {
+            var nws_stations_points = {};
+            var nws_stations = [];
+            for (
+              var i = 0;
+              i < station_response.data.observationStations.length;
+              i++
+            ) {
+              nws_stations_points[
+                station_response.data.features[i].properties.stationIdentifier
+              ] =
+                station_response.data.features[
+                  i
+                ].geometry.coordinates.reverse();
+              nws_stations.push(
+                axios.get(
+                  `${station_response.data.observationStations[i]}/observations?start=${start_date}&end=${end_date}`
+                )
+              );
+            }
+            Promise.allSettled(nws_stations).then((responses) => {
+              for (let i = 0; i < responses.length; i++) {
+                if (responses[i].status == "rejected") {
+                  var error_response = {
+                    errors: [
+                      {
+                        status: 400,
+                        title: responses[i].reason.response.title,
+                        detail: {
+                          parameterErrors:
+                            responses[i].reason.response.data.parameterErrors,
+                        },
+                      },
+                    ],
+                  };
+                  res.type("application/vnd.api+json");
+                  res.status(400);
+                  res.json(error_response);
+                  return;
+                }
+              }
+              var data_modified = false;
+              for (let i = 0; i < responses.length; i++) {
+                if (responses[i].value.data.features.length > 0) {
+                  data_modified = true;
+                  nws_wind_data[
+                    responses[i].value.data.features[0].properties.station
+                  ] = {};
+                  nws_wind_data[
+                    responses[i].value.data.features[0].properties.station
+                  ]["wind_speed"] = {};
+                  nws_wind_data[
+                    responses[i].value.data.features[0].properties.station
+                  ]["wind_direction"] = {};
+                  nws_wind_data[
+                    responses[i].value.data.features[0].properties.station
+                  ]["proximity"] = [
+                    lat -
+                      nws_stations_points[
+                        responses[
+                          i
+                        ].value.data.features[0].properties.station.slice(
+                          responses[
+                            i
+                          ].value.data.features[0].properties.station.lastIndexOf(
+                            "/"
+                          ) + 1
+                        )
+                      ][0],
+                    lon -
+                      nws_stations_points[
+                        responses[
+                          i
+                        ].value.data.features[0].properties.station.slice(
+                          responses[
+                            i
+                          ].value.data.features[0].properties.station.lastIndexOf(
+                            "/"
+                          ) + 1
+                        )
+                      ][1],
+                  ];
+                }
+                for (
+                  let j = 0;
+                  j < responses[i].value.data.features.length;
+                  j++
+                ) {
+                  const nws_wind_direction =
+                    responses[i].value.data.features[j].properties.windDirection
+                      .value;
+                  const nws_wind_speed =
+                    responses[i].value.data.features[j].properties.windSpeed
+                      .value;
+                  nws_wind_data[
+                    responses[i].value.data.features[j].properties.station
+                  ]["wind_speed"][
+                    new Date(
+                      responses[i].value.data.features[j].properties.timestamp
+                    ).toISOString()
+                  ] = nws_wind_speed;
+                  nws_wind_data[
+                    responses[i].value.data.features[j].properties.station
+                  ]["wind_direction"][
+                    new Date(
+                      responses[i].value.data.features[j].properties.timestamp
+                    ).toISOString()
+                  ] = nws_wind_direction;
+                }
+              }
+              res.type("application/vnd.api+json");
+              if (data_modified) {
+                res.status(200);
+                res.json({ stations: nws_wind_data });
+              } else {
+                res.status(404);
+                var nws_response = {
                   errors: [
                     {
-                      status: 400,
-                      title: responses[i].reason.response.title,
-                      detail: {
-                        parameterErrors:
-                          responses[i].reason.response.data.parameterErrors,
-                      },
+                      status: 404,
+                      title: "No Data Found",
+                      detail:
+                        "The National Weather Service does not have data for this time period",
                     },
                   ],
                 };
-                res.type("application/vnd.api+json");
-                res.status(400);
-                res.json(error_response);
-                return;
+                res.json(nws_response);
               }
-            }
-            var data_modified = false;
-            for (let i = 0; i < responses.length; i++) {
-              if (responses[i].value.data.features.length > 0) {
-                data_modified = true;
-                nws_wind_data[
-                  responses[i].value.data.features[0].properties.station
-                ] = {};
-                nws_wind_data[
-                  responses[i].value.data.features[0].properties.station
-                ]["wind_speed"] = {};
-                nws_wind_data[
-                  responses[i].value.data.features[0].properties.station
-                ]["wind_direction"] = {};
-                nws_wind_data[
-                  responses[i].value.data.features[0].properties.station
-                ]["proximity"] = [
-                  lat -
-                    nws_stations_points[
-                      responses[
-                        i
-                      ].value.data.features[0].properties.station.slice(
-                        responses[
-                          i
-                        ].value.data.features[0].properties.station.lastIndexOf(
-                          "/"
-                        ) + 1
-                      )
-                    ][0],
-                  lon -
-                    nws_stations_points[
-                      responses[
-                        i
-                      ].value.data.features[0].properties.station.slice(
-                        responses[
-                          i
-                        ].value.data.features[0].properties.station.lastIndexOf(
-                          "/"
-                        ) + 1
-                      )
-                    ][1],
-                ];
-              }
-              for (
-                let j = 0;
-                j < responses[i].value.data.features.length;
-                j++
-              ) {
-                const nws_wind_direction =
-                  responses[i].value.data.features[j].properties.windDirection
-                    .value;
-                const nws_wind_speed =
-                  responses[i].value.data.features[j].properties.windSpeed
-                    .value;
-                nws_wind_data[
-                  responses[i].value.data.features[j].properties.station
-                ]["wind_speed"][
-                  new Date(
-                    responses[i].value.data.features[j].properties.timestamp
-                  ).toISOString()
-                ] = nws_wind_speed;
-                nws_wind_data[
-                  responses[i].value.data.features[j].properties.station
-                ]["wind_direction"][
-                  new Date(
-                    responses[i].value.data.features[j].properties.timestamp
-                  ).toISOString()
-                ] = nws_wind_direction;
-              }
-            }
+            });
+          })
+          .catch((station_error) => {
             res.type("application/vnd.api+json");
-            if (data_modified) {
-              res.status(200);
-              res.json({ stations: nws_wind_data });
-            } else {
-              res.status(404);
-              var nws_response = {
-                errors: [
-                  {
-                    status: 404,
-                    title: "No Data Found",
-                    detail:
-                      "The National Weather Service does not have data for this time period",
-                  },
-                ],
-              };
-              res.json(nws_response);
-            }
-          });
-        })
-        .catch((station_error) => {
-          res.type("application/vnd.api+json");
-          res.status(404);
+            res.status(404);
 
-          res.json(nws_response);
-        });
-    })
-    .catch((error) => {
-      nws_response = {
-        errors: [
-          {
-            status: 404,
-            title: error.response.data.title,
-            detail: error.response.data.detail,
-          },
-        ],
-      };
-      res.type("application/vnd.api+json");
-      res.status(404).json(nws_response);
-    });
+            res.json(nws_response);
+          });
+      })
+      .catch((error) => {
+        nws_response = {
+          errors: [
+            {
+              status: 404,
+              title: error.response.data.title,
+              detail: error.response.data.detail,
+            },
+          ],
+        };
+        res.type("application/vnd.api+json");
+        res.status(404).json(nws_response);
+      });
+  } else {
+    var params = {
+      Latitude: lat,
+      Longitude: lon,
+      start: start_date,
+      end: end_date,
+    };
+    missingParameterMessage(params, res);
+  }
 });
 
 if (process.env.NODE_ENV !== "test") {
