@@ -467,12 +467,15 @@ app.get("/api/search/aea", function (req, res) {
 
 app.all("/api/search/nws", function (req, res) {
   if (req.method == "GET") {
+    console.log("BEFORE AT");
     var lat = req.query.Latitude;
     var lon = req.query.Longitude;
     if (req.query.start.at(-1) != "Z") {
+      console.log("AFTER AT");
       var start_date = req.query.start + "T00:00:00Z";
       var end_date = req.query.end + "T00:00:00Z";
     } else {
+      console.log("AFTER AT");
       var start_date = req.query.start;
       var end_date = req.query.end;
     }
@@ -487,7 +490,6 @@ app.all("/api/search/nws", function (req, res) {
       var end_date = req.body.end;
     }
   }
-  console.log("RAN");
   var nws_wind_data = {};
   var config = {
     headers: {
