@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: '12'
       - run: npm install
-      - run: npm test --verbose false
+      - run: npm test
 
       - name: Tests ✅
         if: ${{ success() }}
