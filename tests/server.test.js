@@ -47,7 +47,7 @@ describe("NWS API", () => {
   it("GET /api/search/nws --> invalid point", () => {
     return request(app)
       .get(
-        "/api/search/nws?lat=400&lon=300&height=50&start_date=2022-04-05T01:01:01Z&end_date=2022-06-06T01:01:01Z"
+        "/api/search/nws?Latitude=400&Longitude=300&height=50&start=2022-04-05T01:01:01Z&end=2022-06-06T01:01:01Z"
       )
       .expect(404)
       .expect("Content-Type", /json/)
@@ -71,7 +71,7 @@ describe("NWS API", () => {
   it("GET /api/search/nws --> inaccesible point", () => {
     return request(app)
       .get(
-        "/api/search/nws?lat=-43&lon=-135&height=50&start_date=2022-04-05T01:01:01Z&end_date=2022-06-06T01:01:01Z"
+        "/api/search/nws?Latitude=-43&Longitude=-135&height=50&start=2022-04-05T01:01:01Z&end=2022-06-06T01:01:01Z"
       )
       .expect(404)
       .expect("Content-Type", /json/)
@@ -94,7 +94,7 @@ describe("NWS API", () => {
   it("GET /api/search/nws --> no available data", () => {
     return request(app)
       .get(
-        "/api/search/nws?lat=39&lon=-105&height=50&start_date=2022-04-05T01:01:01Z&end_date=2022-06-06T01:01:01Z"
+        "/api/search/nws?Latitude=39&Longitude=-105&height=50&start=2022-04-05T01:01:01Z&end=2022-06-06T01:01:01Z"
       )
       .expect(404)
       .expect("Content-Type", /json/)
@@ -129,9 +129,9 @@ describe("NWS API", () => {
     }
     return request(app)
       .get(
-        `/api/search/nws?lat=39&lon=-105&height=50&start_date=${daysAgo(
+        `/api/search/nws?Latitude=39&Longitude=-105&height=50&start=${daysAgo(
           7
-        )}&end_date=${daysAgo(1)}`
+        )}&end=${daysAgo(1)}`
       )
       .expect(200)
       .expect("Content-Type", /json/);
@@ -153,9 +153,9 @@ describe("NWS API", () => {
     }
     return request(app)
       .get(
-        `/api/search/nws?lat=39&lon=-105&height=50&start_date=${daysAgo(
+        `/api/search/nws?Latitude=39&Longitude=-105&height=50&start=${daysAgo(
           7
-        )}&end_date=${daysAgo(1)}`
+        )}&end=${daysAgo(1)}`
       )
       .expect(400)
       .expect("Content-Type", /json/);
