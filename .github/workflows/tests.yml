@@ -8,7 +8,7 @@ env:
   OPEN: ${{ secrets.OPEN_WEATHER_API_KEY }}
   EMAIL: ${{ secrets.EMAIL }}
   NODE_ENV: "test"
-  
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: '12'
       - run: npm install
-      - run: npm test
+      - run: npm test --verbose false
 
       - name: Tests ✅
         if: ${{ success() }}
