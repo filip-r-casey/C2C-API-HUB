@@ -100,6 +100,7 @@ app.all("/api/search", function (req, res) {
     `http://0.0.0.0:3000/api/search/nws?lat=${lat}&lon=${lon}&start_date=${start_date}&end_date=${end_date}`
   );
 
+  console.log(nws);
   // Alaska Energy Authority API
   // aea = axios.get(
   //   `172.17.0.3/api/search/aea?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
