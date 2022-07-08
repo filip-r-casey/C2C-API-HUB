@@ -491,6 +491,7 @@ app.all("/api/search/nws", function (req, res) {
   var nws = axios
     .get(`https://api.weather.gov/points/${lat},${lon}`)
     .then((response) => {
+      console.log(response);
       axios
         .get(response.data.properties.observationStations)
         .then((station_response) => {
