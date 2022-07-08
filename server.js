@@ -466,6 +466,7 @@ app.get("/api/search/aea", function (req, res) {
 });
 
 app.all("/api/search/nws", function (req, res) {
+  console.log("RAN");
   if (req.method == "GET") {
     var lat = req.query.Latitude;
     var lon = req.query.Longitude;
@@ -488,11 +489,15 @@ app.all("/api/search/nws", function (req, res) {
     }
   }
   var nws_wind_data = {};
-  console.log("RAN");
+  var config = {
+    headers: {
+      header1: "application/geo+json",
+    },
+  };
+  console.log(`https://api.weather.gov/points/${lat},${lon}`);
   var nws = axios
     .get(`https://api.weather.gov/points/${lat},${lon}`)
     .then((response) => {
-      console.log(response);
       axios
         .get(response.data.properties.observationStations)
         .then((station_response) => {
