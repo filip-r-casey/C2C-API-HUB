@@ -3,14 +3,25 @@ const bodyParser = require("body-parser");
 const app = express();
 const axios = require("axios");
 const path = require("path");
-const { response } = require("express");
+const { response: prevailing_response } = require("express");
 const exp = require("constants");
+const pgp = require("pg-promise")();
 const {
   yearRange,
   spacedList,
   missingParameterMessage,
 } = require("./src/scripts/utilities");
 const { stat } = require("fs");
+
+const HOST = "0.0.0.0";
+const credentials = {
+  host: HOST,
+  port: 5432,
+  database: "root",
+  user: "root",
+  password: "root",
+};
+const db = pgp(credentials);
 
 require("dotenv").config();
 
@@ -105,10 +116,10 @@ app.all("/api/search", function (req, res) {
     `http://0.0.0.0:3000/api/search/nws?Latitude=${lat}&Longitude=${lon}&start=${start_date}&end=${end_date}`
   );
 
-  // Alaska Energy Authority API
-  // aea = axios.get(
-  //   `172.17.0.3/api/search/aea?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
-  // );
+  //Alaska Energy Authority API
+  aea = axios.get(
+    `http://0.0.0.0:3000/api/search/aea/wind_speed?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
+  );
 
   // Find compatible sources
   var compatible_sources = {
@@ -116,7 +127,7 @@ app.all("/api/search", function (req, res) {
     wind_toolkit: wind_toolkit,
     nws: nws,
     ...(open_weather_bool && { open_weather: open_weather }),
-    // aea: aea,
+    aea: aea,
   };
 
   // API Call
@@ -167,11 +178,12 @@ app.all("/api/search", function (req, res) {
         }
         if ("aea" in compatible_sources) {
           var aea_idx = Object.keys(compatible_sources).indexOf("aea");
+          var aea_data = null;
+          var aea_err = null;
           if (promise_responses[aea_idx].status == "rejected") {
-            var aea_err =
-              promise_responses[aea_idx].reason.response.data.errors;
+            aea_err = promise_responses[aea_idx].reason.response.data.errors;
           } else {
-            var aea_data = promise_responses[aea_idx].value.data;
+            aea_data = promise_responses[aea_idx].value.data;
           }
         }
         json_response = {
@@ -212,7 +224,7 @@ app.all("/api/search", function (req, res) {
             ...((aea_data != null || aea_data != null) && {
               AEA: {
                 ...(aea_data != null && { data: aea_data }),
-                ...(aea_error != null && { errors: aea_err }),
+                ...(aea_err != null && { errors: aea_err }),
               },
             }),
           },
@@ -511,22 +523,204 @@ app.get("/api/search/open_weather", function (req, res) {
   }
 });
 
-app.get("/api/search/aea", function (req, res) {
+// Alaska Energy Authority
+app.get("/api/search/aea/sites/coord_search", (req, res) => {
+  var lat = parseInt(req.query.lat);
+  var lon = parseInt(req.query.lon);
+  var lat_threshold = parseInt(req.query.lat_threshold);
+  var lon_threshold = parseInt(req.query.lon_threshold);
+  var site_response = {};
+
+  db.any(
+    "SELECT * FROM aea_sites WHERE (latitude BETWEEN $1 and $2) AND (longitude BETWEEN $3 AND $4)",
+    [
+      lat - lat_threshold,
+      lat + lat_threshold,
+      lon - lon_threshold,
+      lon + lon_threshold,
+    ]
+  )
+    .then((response) => {
+      site_response = response;
+      res.setHeader("Content-Type", "application/json");
+      res.status(200);
+      res.json({ sites: site_response });
+    })
+    .catch((error) => {
+      res.status(404);
+      res.json(error);
+    });
+});
+
+app.get("/api/search/aea/sites/name_search", (req, res) => {
+  var name = req.query.name;
+  db.any("SELECT * FROM aea_sites WHERE site_name = $1", [name])
+    .then((response) => {
+      var site_response = response;
+      res.setHeader("Content-Type", "application/json");
+      res.status(200);
+      res.json({ sites: site_response });
+    })
+    .catch((error) => {
+      res.status(404);
+      res.json(error);
+    });
+});
+
+app.get("/api/search/aea/wind_speed", (req, res) => {
+  function parseWindResponse(prevailing_response, historic_response) {
+    var response_json = {};
+    var months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    for (let i = 0; i < prevailing_response.length; i++) {
+      if (!(prevailing_response[i]["site_name"] in response_json)) {
+        response_json[prevailing_response[i]["site_name"]] = {
+          latitude: prevailing_response[i]["latitude"],
+          longitude: prevailing_response[i]["longitude"],
+          elevation: prevailing_response[i]["elevation"],
+          altitude: prevailing_response[i]["altitude"],
+          prevailing_data: {
+            prevailing_direction: {
+              January: {},
+              February: {},
+              March: {},
+              April: {},
+              May: {},
+              June: {},
+              July: {},
+              August: {},
+              September: {},
+              October: {},
+              November: {},
+              December: {},
+            },
+            speed_for_prevailing: {
+              January: {},
+              February: {},
+              March: {},
+              April: {},
+              May: {},
+              June: {},
+              July: {},
+              August: {},
+              September: {},
+              October: {},
+              November: {},
+              December: {},
+            },
+          },
+        };
+      } else {
+        response_json[prevailing_response[i]["site_name"]]["prevailing_data"][
+          "prevailing_direction"
+        ][months[prevailing_response[i]["month"] - 1]][
+          prevailing_response[i]["hour"]
+        ] = prevailing_response[i]["prevailing_direction"];
+        response_json[prevailing_response[i]["site_name"]]["prevailing_data"][
+          "speed_for_prevailing"
+        ][months[prevailing_response[i]["month"] - 1]][
+          prevailing_response[i]["hour"]
+        ] = prevailing_response[i]["speed_for_prevailing"];
+      }
+    }
+    for (let i = 0; i < historic_response.length; i++) {
+      if (
+        !("historic_data" in response_json[historic_response[i]["site_name"]])
+      ) {
+        response_json[historic_response[i]["site_name"]]["historic_data"] = {
+          wind_speed: {},
+        };
+      } else {
+        if (
+          !(
+            historic_response[i].year in
+            response_json[historic_response[i]["site_name"]]["historic_data"][
+              "wind_speed"
+            ]
+          )
+        ) {
+          response_json[historic_response[i]["site_name"]]["historic_data"][
+            "wind_speed"
+          ][historic_response[i].year] = {};
+        } else {
+          response_json[historic_response[i]["site_name"]]["historic_data"][
+            "wind_speed"
+          ][historic_response[i].year][months[historic_response[i].month - 1]] =
+            historic_response[i].wind_speed;
+        }
+      }
+    }
+    return response_json;
+  }
+  if (req.query.sites == null && req.query.lat == null) {
+    res.setHeader("Content-Type", "application/json");
+    res.status(400);
+    res.json({
+      status: 400,
+      title: "Insufficient request",
+      message:
+        "A request must include either a list of sites, or a location with latitude and longitude",
+    });
+  }
+  if (req.query.sites != null) {
+    var sites = req.query.sites.split(",");
+  }
   var start = req.query.start;
   var end = req.query.end;
   var lat = parseInt(req.query.lat);
   var lon = parseInt(req.query.lon);
-  var lat_threshold = parseInt(req.query.lat_threshold) || 0;
-  var lon_threshold = parseInt(req.query.lon_threshold) || 0;
+  var lat_threshold = parseInt(req.query.lat_threshold) || 1;
+  var lon_threshold = parseInt(req.query.lon_threshold) || 1;
 
-  axios
-    .get(`http://0.0.0.0:8080/wind_speed?lat=${lat}&lon=${lon}`)
-    .then((aea_response) => {
-      res.json(aea_response);
-    })
-    .catch((aea_error) => {
-      console.error(aea_error);
-    });
+  if (sites == null && lat != null && lon != null) {
+    // Condition to search for sites if they are not provided
+    db.multi(
+      `SELECT * FROM aea_sites
+    INNER JOIN aea_prevailing_direction_data ON aea_sites.site_name = aea_prevailing_direction_data.site_name
+    WHERE (latitude BETWEEN $1 and $2) AND (longitude BETWEEN $3 and $4);SELECT * FROM aea_sites
+    INNER JOIN aea_historic_wind_data ON aea_sites.site_name = aea_historic_wind_data.site_name
+    WHERE (latitude BETWEEN $1 and $2) AND (longitude BETWEEN $3 and $4);`,
+      [
+        lat - lat_threshold,
+        lat + lat_threshold,
+        lon - lon_threshold,
+        lon + lon_threshold,
+      ]
+    )
+      .then((responses) => {
+        res.setHeader("Content-Type", "application/json");
+        res.status(200);
+        res.json({ sites: parseWindResponse(responses[0], responses[1]) });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  } else if (sites != null) {
+    db.multi(
+      `SELECT * FROM aea_sites INNER JOIN aea_prevailing_direction_data ON aea_sites.site_name = aea_prevailing_direction_data.site_name WHERE aea_sites.site_name IN ($1:list):SELECT * FROM aea_sites INNER JOIN aea_historic_wind_data ON aea_sites.site_name = aea_historic_wind_data.site_name WHERE aea_sites.site_name IN ($1:list);`,
+      [sites]
+    )
+      .then((responses) => {
+        res.setHeader("Content-Type", "application/json");
+        res.status(200);
+        res.json({ sites: parseWindResponse(responses[0], responses[1]) });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
 });
 
 app.all("/api/search/nws", function (req, res) {

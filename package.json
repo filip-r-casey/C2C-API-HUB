@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "jest --silent=false",
+    "test": "jest --silent=false ./tests",
     "start": "nodemon server.js"
   },
   "dependencies": {
@@ -18,7 +18,8 @@
   "devDependencies": {
     "nodemon": "^2.0.19",
     "jest": "^28.1.2",
-    "supertest": "^6.2.4"
+    "supertest": "^6.2.4",
+    "pg-promise": "^10.11.1"
   },
   "author": "",
   "license": "ISC"
