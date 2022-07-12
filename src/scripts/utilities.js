@@ -9,7 +9,7 @@ function yearRange(start_year, end_year) {
 function spacedList(array) {
   var spaced_string = "";
   for (var i = 0; i < array.length; i++) {
-    spaced_string += array[i] + " ";
+    spaced_string += array[i] + ",";
   }
   return spaced_string.trim();
 }

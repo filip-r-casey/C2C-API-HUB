@@ -300,14 +300,43 @@ app.get("/api/search/nasa_power", function (req, res) {
         res.json({ nasa_speed: nasa_speed, nasa_direction: nasa_direction });
       })
       .catch((nasa_error) => {
-        console.error(nasa_error);
+        var title_str = "";
+        var detail_str = "";
+        if ("detail" in nasa_error.response.data) {
+          // Checks for an error with the date string
+          title_str = nasa_error.response.data.detail[0].msg;
+          detail_str = "Invalid value at: ";
+          for (
+            let i = 0;
+            i < nasa_error.response.data.detail[0].loc.length;
+            i++
+          ) {
+            detail_str += nasa_error.response.data.detail[0].loc[i] + ", ";
+          }
+          detail_str = detail_str.substring(0, detail_str.length - 2);
+        } else {
+          title_str = nasa_error.response.data.header;
+          for (let i = 0; i < nasa_error.response.data.messages.length; i++) {
+            detail_str += nasa_error.response.data.messages[i] + " ";
+          }
+        }
+        res.status(nasa_error.response.status);
+        res.json({
+          errors: [
+            {
+              status: nasa_error.response.status,
+              title: title_str,
+              detail: detail_str,
+            },
+          ],
+        });
       });
   } else {
     var params = {
       Latitude: lat,
       Longitude: lon,
       HubHeight: height,
-      windSurface: wind_surface,
+      WindSurface: wind_surface,
       start: start_date,
       end: end_date,
     };
@@ -331,26 +360,80 @@ app.get("/api/search/wind_toolkit", function (req, res) {
   } else {
     res.json({ error: "Incompatible method" });
   }
-  var begin_year = new Date(start_date).getFullYear();
-  var end_year = new Date(end_date).getFullYear();
-  var heights = [10, 40, 60, 80, 100, 120, 140, 160, 200];
-  var closest = heights.reduce(function (prev, curr) {
-    return Math.abs(curr - height) < Math.abs(prev - height) ? curr : prev;
-  });
-  var wind_toolkit = axios.get(
-    `https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.json?api_key=${
-      process.env.WIND_TOOLKIT_API_KEY
-    }&wkt=POINT(${lon} ${lat})&attributes=windspeed_${closest}m,winddirection_${closest}m&names=${spacedList(
-      yearRange(begin_year, end_year)
-    )}&email=${process.env.EMAIL}`
-  );
-  wind_toolkit
-    .then((wind_toolkit_response) => {
-      res.json({ url: wind_toolkit_response.data.outputs.downloadUrl });
-    })
-    .catch((wind_toolkit_error) => {
-      console.error(wind_toolkit_error);
+  if (lat && lon && height && start_date && end_date) {
+    function isValidDate(d) {
+      return d instanceof Date && !isNaN(d);
+    }
+    if (
+      isValidDate(new Date(start_date)) &&
+      isValidDate(new Date(start_date))
+    ) {
+      var begin_year = new Date(start_date).getFullYear();
+      var end_year = new Date(end_date).getFullYear();
+    } else {
+      res.status(400);
+      res.json({
+        errors: [
+          {
+            status: 400,
+            title: "Invalid Date",
+            detail: "Date must be in the format YYYY-MM-DDT00:00:00Z",
+          },
+        ],
+      });
+      return;
+    }
+    var heights = [10, 40, 60, 80, 100, 120, 140, 160, 200];
+    var closest = heights.reduce(function (prev, curr) {
+      return Math.abs(curr - height) < Math.abs(prev - height) ? curr : prev;
     });
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      res.status(400);
+      res.json({
+        errors: [
+          {
+            status: 400,
+            title: "Coordinates out of range",
+            detail:
+              "Latitude must be within -90 and 90, and Longitude must be within -180 and 180",
+          },
+        ],
+      });
+      return;
+    }
+    var wind_toolkit = axios.get(
+      `https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.json?api_key=${
+        process.env.WIND_TOOLKIT_API_KEY
+      }&wkt=POINT(${lon} ${lat})&attributes=windspeed_${closest}m,winddirection_${closest}m&names=${spacedList(
+        yearRange(begin_year, end_year)
+      )}&email=${process.env.EMAIL}`
+    );
+    wind_toolkit
+      .then((wind_toolkit_response) => {
+        res.json({ url: wind_toolkit_response.data.outputs.downloadUrl });
+      })
+      .catch((wind_toolkit_error) => {
+        res.status(wind_toolkit_error.response.status);
+        res.json({
+          errors: [
+            {
+              status: wind_toolkit_error.response.data.status,
+              title: "Wind Toolkit Error",
+              detail: wind_toolkit_error.response.data.errors[0],
+            },
+          ],
+        });
+      });
+  } else {
+    var params = {
+      Latitude: lat,
+      Longitude: lon,
+      HubHeight: height,
+      start: start_date,
+      end: end_date,
+    };
+    missingParameterMessage(params, res);
+  }
 });
 
 app.get("/api/search/open_weather", function (req, res) {
