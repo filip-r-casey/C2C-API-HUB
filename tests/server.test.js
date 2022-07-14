@@ -45,6 +45,7 @@ describe("General", () => {
   });
 });
 
+// Tests concerning the implementation of the NASA POWER API
 describe("NASA POWER API", () => {
   // Checks that when any random, necessary parameter is missing an error is returned
   it("GET /api/search/nasa_power --> missing parameters", () => {
@@ -265,6 +266,7 @@ describe("Wind Toolkit", () => {
       .expect("Content-Type", /json/);
   });
 });
+
 // Tests concerning the implementation of the National Weather Service API
 describe("NWS API", () => {
   // Checks that when any random, necessary parameter is missing an error is returned
@@ -384,5 +386,113 @@ describe("NWS API", () => {
       )
       .expect(200)
       .expect("Content-Type", /json/);
+  }, 20000);
+});
+
+// Tests concerning the implementation of the Open Weather API
+describe("Open Weather API", () => {
+  // Checks that when any random, necessary parameter is missing an error is returned
+  it("GET /api/search/open_weather --> missing parameters", () => {
+    var params = [
+      "Latitude",
+      "Longitude",
+      "HubHeight",
+      "WindSurface",
+      "start",
+      "end",
+    ];
+    var request_url = paramRemove(
+      "/api/search/open_weather?Latitude=42&Longitude=-110&HubHeight=40&WindSurface=vegtype_2&start=2022-05-05T21:14:33Z&end=2022-07-07T21:14:33Z",
+      params
+    );
+    return request(app)
+      .get(request_url)
+      .expect(400)
+      .expect("Content-Type", /json/)
+      .then((response) => {
+        expect(response.body.errors[0]).toMatchObject({
+          title: "Missing parameters",
+        });
+      });
   });
+
+  // Any point that does not exist returns a message about an invalid point
+  it("GET /api/search/open_weather --> invalid point", () => {
+    return request(app)
+      .get(
+        "/api/search/open_weather?Latitude=400&Longitude=300&HubHeight=50&start=2022-04-05T01:01:01Z&end=2022-06-06T01:01:01Z&timeStep=10"
+      )
+      .expect(400)
+      .expect("Content-Type", /json/)
+      .then((response) => {
+        expect(response.body).toEqual(
+          expect.objectContaining({
+            errors: expect.arrayContaining([
+              expect.objectContaining({
+                status: 400,
+                title: "Bad Request",
+                detail: expect.stringMatching("wrong"),
+              }),
+            ]),
+          })
+        );
+      });
+  });
+
+  // Any point that is regularly not available will still return data as a result of Open Weather models
+  it("GET /api/search/open_weather --> inaccesible point", () => {
+    return request(app)
+      .get(
+        "/api/search/open_weather?Latitude=-43&Longitude=-135&HubHeight=50&start=2022-04-05T01:01:01Z&end=2022-06-06T01:01:01Z&timeStep=10"
+      )
+      .expect(200)
+      .expect("Content-Type", /json/);
+  });
+
+  // When data is requested for a time period that is not available through Open Weather, an error should be returned
+  // Apparently Open Weather sends a response as an Internal Server Error and not a Bad Request
+  it("GET /api/search/open_weather --> no available data for time period", () => {
+    return request(app)
+      .get(
+        "/api/search/open_weather?Latitude=39&Longitude=-105&HubHeight=50&start=1975-04-05T01:01:01Z&end=1975-06-06T01:01:01Z&timeStep=5"
+      )
+      .expect(500)
+      .expect("Content-Type", /json/)
+      .then((response) => {
+        expect(response.body).toEqual(
+          expect.objectContaining({
+            errors: expect.arrayContaining([
+              expect.objectContaining({
+                status: 500,
+                title: "Internal Server Error",
+                detail: "Internal error: 500001",
+              }),
+            ]),
+          })
+        );
+      });
+  });
+
+  // Checks that error is returned when date parameter is incorrect.
+  // Makes sure that the application doesn't just time out
+  it("GET /api/search/open_weather --> incorrect date format", () => {
+    return request(app)
+      .get(
+        "/api/search/open_weather?Latitude=39&Longitude=-105&HubHeight=50&start=2022-05-08T00Z&end=2022-05-09?timeStep=5"
+      )
+      .expect(400)
+      .expect("Content-Type", /json/);
+  });
+
+  // Checks that when data should be available (usually within the past month) that it is properly processed
+  it("GET /api/search/open_weather --> available data within the past month", () => {
+    return request(app)
+      .get(
+        `/api/search/open_weather?Latitude=39&Longitude=-105&HubHeight=50&start=${daysAgo(
+          7
+        )}&end=${daysAgo(1)}&timeStep=5`
+      )
+      .expect(200)
+      .expect("Content-Type", /json/);
+  }, 20000);
 });
