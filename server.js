@@ -426,15 +426,31 @@ app.get("/api/search/wind_toolkit", function (req, res) {
       })
       .catch((wind_toolkit_error) => {
         res.status(wind_toolkit_error.response.status);
-        res.json({
-          errors: [
-            {
-              status: wind_toolkit_error.response.data.status,
-              title: "Wind Toolkit Error",
-              detail: wind_toolkit_error.response.data.errors[0],
-            },
-          ],
-        });
+        console.log(wind_toolkit_error.response);
+        if (
+          !("errors" in wind_toolkit_error.response.data) &&
+          wind_toolkit_error.response.data.error.code == "OVER_RATE_LIMIT"
+        ) {
+          res.json({
+            errors: [
+              {
+                status: wind_toolkit_error.response.data.status,
+                title: "Exceeded Rate Limit",
+                detail: wind_toolkit_error.response.data.error.message,
+              },
+            ],
+          });
+        } else {
+          res.json({
+            errors: [
+              {
+                status: wind_toolkit_error.response.data.status,
+                title: "Wind Toolkit Error",
+                detail: wind_toolkit_error.response.data.errors[0],
+              },
+            ],
+          });
+        }
       });
   } else {
     var params = {
@@ -465,61 +481,87 @@ app.get("/api/search/open_weather", function (req, res) {
     var time_step = req.body.timeStep;
   } else {
     res.json({ error: "Incompatible method" });
+    return;
   }
-  var first_date = new Date(start_date).getTime();
-  var last_date = new Date(end_date).getTime();
-  var diffTime = Math.abs(last_date - first_date);
-  var increment_time = diffTime / time_step;
-  var open_weather_requests = [];
-  var open_weather_data = {};
-  for (var i = first_date; i < last_date; i += increment_time) {
-    open_weather_requests.push(
-      axios.get(
-        `https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=${lat}&lon=${lon}&dt=${
-          i / 1000
-        }&appid=${process.env.OPEN_WEATHER_API_KEY}`
-      )
-    );
-  }
-  if (open_weather_requests.length > 0) {
-    Promise.allSettled(open_weather_requests)
-      .then((open_weather_response) => {
-        var open_weather_promises = [];
-        var open_weather_errors = [];
-        for (var i = 0; i < open_weather_response.length; i++) {
-          if (open_weather_response[i].status == "fulfilled") {
-            if (open_weather_response[i].value.headers.server == "openresty") {
-              open_weather_promises.push(open_weather_response[i]);
+  if (lat && lon && height && start_date && end_date && time_step) {
+    var first_date = new Date(start_date).getTime();
+    var last_date = new Date(end_date).getTime();
+    var diffTime = Math.abs(last_date - first_date);
+    var increment_time = diffTime / time_step;
+    var open_weather_requests = [];
+    var open_weather_data = {};
+    for (var i = first_date; i < last_date; i += increment_time) {
+      open_weather_requests.push(
+        axios.get(
+          `https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=${lat}&lon=${lon}&dt=${Math.floor(
+            i / 1000
+          )}&appid=${process.env.OPEN_WEATHER_API_KEY}`
+        )
+      );
+    }
+    if (open_weather_requests.length > 0) {
+      Promise.allSettled(open_weather_requests).then(
+        (open_weather_response) => {
+          var open_weather_promises = [];
+          var open_weather_errors = [];
+          for (var i = 0; i < open_weather_response.length; i++) {
+            if (open_weather_response[i].status == "fulfilled") {
+              if (
+                open_weather_response[i].value.headers.server == "openresty"
+              ) {
+                open_weather_promises.push(open_weather_response[i]);
+              }
+            } else if (
+              open_weather_response[i].reason.response.headers.server ==
+              "openresty"
+            ) {
+              open_weather_errors.push(open_weather_response[i]);
             }
-          } else if (
-            open_weather_response[i].reason.response.headers.server ==
-            "openresty"
-          ) {
-            open_weather_errors.push(open_weather_response[i]);
+          }
+          if (open_weather_errors.length <= 0) {
+            open_weather_errors = null;
+          }
+          open_weather_data["wind_speed"] = {};
+          open_weather_data["wind_direction"] = {};
+          for (var i = 0; i < open_weather_promises.length; i++) {
+            open_weather_data["wind_speed"][
+              new Date(
+                open_weather_promises[i].value.data.data[0].dt * 1000
+              ).toISOString()
+            ] = open_weather_promises[i].value.data.data[0].wind_speed;
+            open_weather_data["wind_direction"][
+              new Date(
+                open_weather_promises[i].value.data.data[0].dt * 1000
+              ).toISOString()
+            ] = open_weather_promises[i].value.data.data[0].wind_deg;
+          }
+          if (open_weather_errors) {
+            res.status(open_weather_errors[0].reason.response.status);
+            res.json({
+              errors: [
+                {
+                  status: open_weather_errors[0].reason.response.status,
+                  title: open_weather_errors[0].reason.response.statusText,
+                  detail: open_weather_errors[0].reason.response.data.message,
+                },
+              ],
+            });
+          } else {
+            res.json(open_weather_data);
           }
         }
-        if (open_weather_errors.length <= 0) {
-          open_weather_errors = null;
-        }
-        open_weather_data["wind_speed"] = {};
-        open_weather_data["wind_direction"] = {};
-        for (var i = 0; i < open_weather_promises.length; i++) {
-          open_weather_data["wind_speed"][
-            new Date(
-              open_weather_promises[i].value.data.data[0].dt * 1000
-            ).toISOString()
-          ] = open_weather_promises[i].value.data.data[0].wind_speed;
-          open_weather_data["wind_direction"][
-            new Date(
-              open_weather_promises[i].value.data.data[0].dt * 1000
-            ).toISOString()
-          ] = open_weather_promises[i].value.data.data[0].wind_deg;
-        }
-        res.json(open_weather_data);
-      })
-      .catch((open_weather_error) => {
-        console.error(open_weather_error);
-      });
+      );
+    }
+  } else {
+    var params = {
+      Latitude: lat,
+      Longitude: lon,
+      HubHeight: height,
+      start: start_date,
+      end: end_date,
+      timeStep: time_step,
+    };
+    missingParameterMessage(params, res);
   }
 });
 

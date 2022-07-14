@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: create env file
         uses: SpicyPizza/create-envfile@v1
-        env: 
+        env:
           NASA: ${{ secrets.NASA_POWER_API_KEY }}
           WIND: ${{ secrets.WIND_TOOLKIT_API_KEY }}
           OPEN: ${{ secrets.OPEN_WEATHER_API_KEY }}
@@ -33,9 +33,9 @@ jobs:
       - name: Test using Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: '12'
+          node-version: "12"
       - run: npm install
-      - run: npm test
+      - run: npm test --runInBand
 
       - name: Tests ✅
         if: ${{ success() }}

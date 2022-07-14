@@ -7,6 +7,7 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
       - POSTGRES_DB=root
+      - PGDATA=/var/lib/postgresql/data/
     ports:
       - "5432:5432"
     volumes:
