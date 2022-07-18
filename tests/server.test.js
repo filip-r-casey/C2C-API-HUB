@@ -156,9 +156,11 @@ describe("NASA POWER API", () => {
 
 // Tests concerning the implemenetation of the Wind Toolkit API
 describe("Wind Toolkit", () => {
+  var ms = 1000;
   // Checks that when any random, necessary parameter is missing an error is returned
   it("GET /api/search/wind_toolkit --> missing parameters", () => {
     var params = ["Latitude", "Longitude", "HubHeight", "start", "end"];
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     var request_url = paramRemove(
       "/api/search/wind_toolkit?Latitude=42&Longitude=-110&HubHeight=40&WindSurface=vegtype_2&start=2007-05-05T21:14:33Z&end=2008-07-07T21:14:33Z",
       params
@@ -176,6 +178,7 @@ describe("Wind Toolkit", () => {
 
   // Any point that does not exist returns a message about an invalid point
   it("GET /api/search/wind_toolkit --> invalid point", () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return request(app)
       .get(
         "/api/search/wind_toolkit?Latitude=400&Longitude=300&HubHeight=50&start=2007-04-05T01:01:01Z&end=2008-06-06T01:01:01Z"
@@ -200,6 +203,7 @@ describe("Wind Toolkit", () => {
 
   // Any point that is not proximal to any sites returns a message about data being unavailable at that point
   it("GET /api/search/wind_toolkit --> inaccesible point", () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return request(app)
       .get(
         "/api/search/wind_toolkit?Latitude=-43&Longitude=-135&HubHeight=50&start=2007-04-05T01:01:01Z&end=2008-06-06T01:01:01Z"
@@ -223,6 +227,7 @@ describe("Wind Toolkit", () => {
 
   // When data is requested for a time period that is not available through Wind Toolkit, an error should be returned
   it("GET /api/search/wind_toolkit --> no available data for time period", () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return request(app)
       .get(
         "/api/search/wind_toolkit?Latitude=39&Longitude=-105&HubHeight=50&start=2022-04-05T01:01:01Z&end=2022-06-06T01:01:01Z"
@@ -248,6 +253,7 @@ describe("Wind Toolkit", () => {
   // Checks that error is returned when date parameter is incorrect.
   // Makes sure that the application doesn't just time out
   it("GET /api/search/wind_toolkit --> incorrect date format", () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return request(app)
       .get(
         "/api/search/wind_toolkit?Latitude=39&Longitude=-105&HubHeight=50&start=2007-05-08T00Z&end=2007-05-09"
@@ -258,6 +264,7 @@ describe("Wind Toolkit", () => {
 
   // Checks that when data should be available that it is properly processed
   it("GET /api/search/wind_toolkit --> available data within the past month", () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return request(app)
       .get(
         `/api/search/wind_toolkit?Latitude=39&Longitude=-105&HubHeight=50&start=2007-04-05T01:01:01Z&end=2008-06-06T01:01:01Z`

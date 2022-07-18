@@ -6,6 +6,9 @@ const path = require("path");
 const { response: prevailing_response } = require("express");
 const exp = require("constants");
 const pgp = require("pg-promise")();
+const swaggerUI = require("swagger-ui-express");
+const YAML = require("yamljs");
+const swaggerDocument = YAML.load("./swagger.yaml");
 const {
   yearRange,
   spacedList,
@@ -41,6 +44,7 @@ app.set("view engine", "ejs"); //setting view
 app.get("/", function (req, res) {
   res.render("pages/index");
 });
+app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 
 // Front-end
 app.post("/search", function (req, res) {
@@ -65,6 +69,9 @@ app.post("/search", function (req, res) {
     })
     .then((response) => {
       res.render("pages/results", response["data"]);
+    })
+    .catch((error) => {
+      console.error(error);
     });
 });
 
@@ -426,7 +433,6 @@ app.get("/api/search/wind_toolkit", function (req, res) {
       })
       .catch((wind_toolkit_error) => {
         res.status(wind_toolkit_error.response.status);
-        console.log(wind_toolkit_error.response);
         if (
           !("errors" in wind_toolkit_error.response.data) &&
           wind_toolkit_error.response.data.error.code == "OVER_RATE_LIMIT"
@@ -751,7 +757,7 @@ app.get("/api/search/aea/wind_speed", (req, res) => {
       });
   } else if (sites != null) {
     db.multi(
-      `SELECT * FROM aea_sites INNER JOIN aea_prevailing_direction_data ON aea_sites.site_name = aea_prevailing_direction_data.site_name WHERE aea_sites.site_name IN ($1:list):SELECT * FROM aea_sites INNER JOIN aea_historic_wind_data ON aea_sites.site_name = aea_historic_wind_data.site_name WHERE aea_sites.site_name IN ($1:list);`,
+      `SELECT * FROM aea_sites INNER JOIN aea_prevailing_direction_data ON aea_sites.site_name = aea_prevailing_direction_data.site_name WHERE aea_sites.site_name IN ($1:list); SELECT * FROM aea_sites INNER JOIN aea_historic_wind_data ON aea_sites.site_name = aea_historic_wind_data.site_name WHERE aea_sites.site_name IN ($1:list);`,
       [sites]
     )
       .then((responses) => {

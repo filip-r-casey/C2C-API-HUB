@@ -1,0 +1,212 @@
+openapi: 3.0.0
+info:
+  title: C2C API HUB
+  description: Communities to Clean API Data Aggregation Tool
+  version: 1.0.0
+paths:
+  /search:
+    get:
+      tags:
+        - search
+      operationId: GET
+      description: Returns data from all data sources
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+        - $ref: "#/components/parameters/surface"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+        - in: query
+          name: openWeather
+          schema:
+            type: boolean
+          description: Controls whether or not to call the OpenWeather API (Experimental Feature)
+        - in: query
+          name: timeStep
+          schema:
+            type: integer
+          description: How many time steps to call the OpenWeather API
+      responses:
+        "200":
+          description: Data from at least one data source is successfully returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data_source:
+                    type: object
+                    description: Collection of data from various sources
+                    properties:
+                      NASA:
+                        type: object
+                        description: Data from NASA POWER
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              wind_speed:
+                                type: object
+                              wind_direction:
+                                type: object
+                      WIND:
+                        type: object
+                        description: Data from Wind Toolkit
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              wind_speed:
+                                type: object
+                              wind_direction:
+                                type: object
+                      NWS:
+                        type: object
+                        description: Data from National Weather Service
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              stations:
+                                type: object
+                                properties:
+                                  https://api.weather.gov/stations/EXAMPLE:
+                                    type: object
+                                    properties:
+                                      wind_speed:
+                                        type: object
+                                      wind_direction:
+                                        type: object
+
+        default:
+          description: Unexpected error
+          content:
+            text/plain:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - search
+      operationId: POST
+      description: Returns data from all data sources
+      parameters:
+        - name: body
+          in: query
+          description: The person details
+          required: true
+          schema:
+            $ref: "#/components/schemas/WindRequest"
+      responses:
+        "200":
+          description: Data from at least one data source is successfully returned
+        default:
+          description: Unexpected error
+components:
+  schemas:
+    Error:
+      required:
+        - status
+        - title
+        - detail
+      properties:
+        status:
+          type: integer
+          format: int32
+        title:
+          type: string
+        detail:
+          type: string
+    Success:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    WindRequest:
+      required:
+        - name
+      properties:
+        Latitude:
+          type: number
+        Longitude:
+          type: number
+        HubHeight:
+          type: array
+        WindSurface:
+          type: string
+        start:
+          type: string
+        end:
+          type: string
+  parameters:
+    lat:
+      name: Latitude
+      in: query
+      description: In degree decimal format
+      required: true
+      schema:
+        type: number
+        minimum: -90
+        maximum: 90
+    lon:
+      name: Longitude
+      in: query
+      description: In degree decimal format
+      required: true
+      schema:
+        type: number
+        minimum: -180
+        maximum: 180
+    height:
+      name: HubHeight
+      in: query
+      description: Height of turbine hub
+      required: true
+      schema:
+        type: number
+        minimum: 0
+        maximum: 500
+    surface:
+      name: WindSurface
+      in: query
+      description: Area surface description as described in the NASA POWER docs
+      required: true
+      schema:
+        type: string
+        enum:
+          - vegtype_1
+          - vegtype_2
+          - vegtype_3
+          - vegtype_4
+          - vegtype_5
+          - vegtype_6
+          - vegtype_7
+          - vegtype_8
+          - vegtype_9
+          - vegtype_10
+          - vegtype_11
+          - vegtype_12
+          - vegtype_20
+          - openwater
+          - seaice
+          - airport_ice
+          - airportgrass
+    start:
+      name: start
+      in: query
+      description: Start date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+      required: true
+      schema:
+        type: string
+    end:
+      name: end
+      in: query
+      description: End date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+      required: true
+      schema:
+        type: string
