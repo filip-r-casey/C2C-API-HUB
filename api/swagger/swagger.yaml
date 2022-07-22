@@ -1,0 +1,839 @@
+openapi: 3.0.0
+info:
+  title: C2C API HUB
+  description: Communities to Clean API Data Aggregation Tool
+  version: 1.0.0
+paths:
+  /search:
+    get:
+      tags:
+        - search
+      operationId: SEARCH_GET
+      description: Returns data from all data sources
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+        - $ref: "#/components/parameters/surface"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+        - $ref: "#/components/parameters/openWeather"
+        - $ref: "#/components/parameters/timeStep"
+      responses:
+        "200":
+          description: Data from at least one data source is successfully returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data_source:
+                    type: object
+                    description: Collection of data from various sources
+                    properties:
+                      NASA:
+                        type: object
+                        description: Data from NASA POWER
+                        properties:
+                          data:
+                            $ref: "#/components/schemas/data"
+                      WIND:
+                        type: object
+                        description: Data from Wind Toolkit
+                        properties:
+                          data:
+                            $ref: "#/components/schemas/data"
+                      NWS:
+                        type: object
+                        description: Data from National Weather Service
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              stations:
+                                type: object
+                                properties:
+                                  https://api.weather.gov/stations/EXAMPLE:
+                                    $ref: "#/components/schemas/data"
+        "400":
+          description: Bad Request. See `title` and `detail` for more information
+        "500":
+          description: Internal Server Error. Please report to contact
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - search
+      operationId: SEARCH_POST
+      description: Returns data from all data sources
+      parameters:
+        - name: body
+          in: query
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+            properties:
+              Latitude:
+                type: number
+                description: In degree decimal format
+              Longitude:
+                type: number
+                description: In degree decimal format
+              HubHeight:
+                type: number
+                description: Height of turbine hub
+              WindSurface:
+                type: string
+                description: Area surface description as described in the NASA POWER docs
+              start:
+                type: string
+                description: Start date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+              end:
+                type: string
+                description: End date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+              openWeather:
+                type: boolean
+                description: Controls whether or not to call the OpenWeather API (Experimental Feature)
+              timeStep:
+                type: integer
+                description: How many time steps to call the OpenWeather API
+          description: The request for wind information
+      responses:
+        "200":
+          description: OK. Data from at least one data source is successfully returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data_source:
+                    type: object
+                    description: Collection of data from various sources
+                    properties:
+                      NASA:
+                        type: object
+                        description: Data from NASA POWER
+                        properties:
+                          data:
+                            $ref: "#/components/schemas/data"
+                      WIND:
+                        type: object
+                        description: Data from Wind Toolkit
+                        properties:
+                          data:
+                            $ref: "#/components/schemas/data"
+                      NWS:
+                        type: object
+                        description: Data from National Weather Service
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              stations:
+                                type: object
+                                properties:
+                                  https://api.weather.gov/stations/EXAMPLE:
+                                    $ref: "#/components/schemas/data"
+        "400":
+          description: Bad Request. See `title` and `detail` for more information
+        "500":
+          description: Internal Server Error. Please report to contact
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /search/nasa_power:
+    get:
+      tags:
+        - nasa_power
+        - search
+      operationId: NASA_GET
+      description: Returns formatted wind data from NASA POWER
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+        - $ref: "#/components/parameters/surface"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+      responses:
+        "200":
+          description: OK. Data successfully returned from NASA POWER.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/data"
+        "400":
+          description: Bad Request. See `title` and `detail` for more information
+        "422":
+          description: Unprocessable Entity. Often occurs when time is incorrectly formatted
+        "500":
+          description: Internal Server Error. Please report to contact
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - nasa_power
+        - search
+      operationId: NASA_POST
+      description: Returns formatted wind data from NASA POWER
+      parameters:
+        - name: body
+          in: query
+          description: The request for wind information
+          required: true
+          schema:
+            $ref: "#/components/schemas/WindRequest"
+      responses:
+        "200":
+          description: OK. Data from at least one data source is successfully returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data_source:
+                    type: object
+                    description: Collection of data from various sources
+                    properties:
+                      NASA:
+                        type: object
+                        description: Data from NASA POWER
+                        properties:
+                          data:
+                            $ref: "#/components/schemas/data"
+                      WIND:
+                        type: object
+                        description: Data from Wind Toolkit
+                        properties:
+                          data:
+                            $ref: "#/components/schemas/data"
+                      NWS:
+                        type: object
+                        description: Data from National Weather Service
+                        properties:
+                          data:
+                            type: object
+                            properties:
+                              stations:
+                                type: object
+                                properties:
+                                  https://api.weather.gov/stations/EXAMPLE:
+                                    $ref: "#/components/schemas/data"
+        "400":
+          description: Bad Request. See `title` and `detail` for more information
+        "422":
+          description: Unprocessable Entity. Often occurs when time is incorrectly formatted
+        "500":
+          description: Internal Server Error. Please report to contact
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /search/wind_toolkit:
+    get:
+      tags:
+        - wind_toolkit
+        - search
+      operationId: WIND_GET
+      description: Returns a link to csv formatted wind data from Wind Toolkit
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+        - $ref: "#/components/parameters/surface"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+      responses:
+        "200":
+          description: OK. URL from Wind Toolkit successfully received, does not ensure that the data will be intact
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: Link to access Wind Toolkit csv
+        "400":
+          description: Bad Request. See `title` and `detail` for more information
+        "429":
+          description: Too many request. Occurs if more than 1 request is made every 2 seconds
+        "500":
+          description: Internal Server Error. Please report to contact
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - wind_toolkit
+        - search
+      operationId: WIND_POST
+      description: Returns a link to csv formatted wind data from Wind Toolkit
+      parameters:
+        - name: body
+          in: query
+          description: The request for wind information
+          required: true
+          schema:
+            $ref: "#/components/schemas/WindRequest"
+
+      responses:
+        "200":
+          description: OK. URL from Wind Toolkit successfully received, does not ensure that the data will be intact
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: Link to access Wind Toolkit csv
+        "400":
+          description: Bad Request. See `title` and `detail` for more information
+        "429":
+          description: Too many request. Occurs if more than 1 request is made every 2 seconds
+        "500":
+          description: Internal Server Error. Please report to contact
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /search/open_weather:
+    get:
+      tags:
+        - open_weather
+        - search
+      operationId: OW_GET
+      description: Returns formatted wind data from OpenWeather
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+        - $ref: "#/components/parameters/surface"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+        - in: query
+          name: timeStep
+          required: true
+          schema:
+            type: integer
+          description: How many time steps to call the OpenWeather API
+      responses:
+        "200":
+          description: OK. Data successfully returned from NASA POWER.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/data"
+        "400":
+          description: Bad Request. See `title` and `detail` for more information
+        "500":
+          description: Internal Server Error. Please report to contact
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - open_weather
+        - search
+      operationId: OW_POST
+      description: Returns formatted wind data from OpenWeather
+      parameters:
+        - name: body
+          in: query
+          description: The request for wind information
+          required: true
+          schema:
+            $ref: "#/components/schemas/OpenWindRequest"
+      responses:
+        "200":
+          description: OK. Data successfully returned from NASA POWER.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/data"
+        "400":
+          description: Bad Request. See `title` and `detail` for more information
+        "500":
+          description: Internal Server Error. Please report to contact
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /search/aea/sites/coord_search:
+    get:
+      tags:
+        - aea
+        - search
+      operationId: AEA_GET_SITE_COORDS
+      description: Returns a list of Alaska Energy Authority sites proximal to the inputted location
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/lat_threshold"
+        - $ref: "#/components/parameters/lon_threshold"
+      responses:
+        "200":
+          description: OK. List of proximal sites returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/site_data"
+        "404":
+          description: Not found. Please report your bug
+    post:
+      tags:
+        - aea
+        - search
+      operationId: AEA_POST_NAME_COORDS
+      description: Returns a list of Alaska Energy Authority sites proximal to the inputted location
+      parameters:
+        - in: query
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              lat:
+                type: number
+                description: In degree decimal format
+              lon:
+                type: number
+                description: In degree decimal format
+              lat_threshold:
+                type: number
+                description: How far away from the inputted coordinates the sites can be latitude-wise. Defaults to 1.
+              lon_threshold:
+                type: number
+                description: How far away from the inputted coordinates the sites can be longitude-wise. Defaults to 1.
+      responses:
+        "200":
+          description: OK. List of proximal sites returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/site_data"
+        "404":
+          description: Not found. Please report your bug
+  /search/aea/sites/name_search:
+    get:
+      tags:
+        - aea
+        - search
+      operationId: AEA_GET_SITE_NAME
+      description: Returns a list of Alaska Energy Authority sites matching the inputted name
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema:
+            type: string
+          description: Name to search for
+      responses:
+        "200":
+          description: OK. List of sites matching the inputted search.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/site_data"
+        "404":
+          description: Not found. Please report your bug
+    post:
+      tags:
+        - aea
+        - search
+      operationId: AEA_POST_SITE_NAME
+      description: Returns a list of Alaska Energy Authority sites matching the inputted name
+      parameters:
+        - in: query
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+          description: The request for site information
+      responses:
+        "200":
+          description: OK. List of sites matching the inputted search.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/site_data"
+        "404":
+          description: Not found. Please report your bug
+  /search/aea/wind_speed:
+    get:
+      tags:
+        - aea
+        - search
+      operationId: AEA_GET_WIND
+      description: Returns formatted wind data from the Alaska Energy Authority
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lat_threshold"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/lon_threshold"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+        - $ref: "#/components/parameters/height"
+      responses:
+        "200":
+          description: OK. Data successfully returned from the Alaska Energy Authority
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/site_data"
+    post:
+      tags:
+        - aea
+        - search
+      operationId: AEA_POST_WIND
+      description: Returns formatted wind data from the Alaska Energy Authority
+      parameters:
+        - name: body
+          in: query
+          description: The request for wind information
+          required: true
+          schema:
+            $ref: "#/components/schemas/AlaskaWindRequest"
+      responses:
+        "200":
+          description: OK. Data successfully returned from the Alaska Energy Authority
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/site_data"
+  /search/nws:
+    get:
+      tags:
+        - nws
+        - search
+      operationId: NWS_GET
+      description: Returns formatted wind data from the National Weather Service
+      parameters:
+        - $ref: "#/components/parameters/lat"
+        - $ref: "#/components/parameters/lon"
+        - $ref: "#/components/parameters/height"
+        - $ref: "#/components/parameters/surface"
+        - $ref: "#/components/parameters/start"
+        - $ref: "#/components/parameters/end"
+      responses:
+        "200":
+          description: OK. Data successfully received from NWS.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stations:
+                    type: object
+                    properties:
+                      https://api.weather.gov/stations/EXAMPLE:
+                        $ref: "#/components/schemas/data"
+        "400":
+          description: Bad Request. Check title and detail for more information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found. Data not available from NWS, check title and detail for more information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - nws
+        - search
+      operationId: NWS_POST
+      description: Returns formatted wind data from the National Weather Service
+      parameters:
+        - name: body
+          in: query
+          description: The request for wind information
+          required: true
+          schema:
+            $ref: "#/components/schemas/WindRequest"
+      responses:
+        "200":
+          description: OK. Data successfully received from NWS.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stations:
+                    type: object
+                    properties:
+                      https://api.weather.gov/stations/EXAMPLE:
+                        $ref: "#/components/schemas/data"
+        "400":
+          description: Bad Request. Check title and detail for more information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Not found. Data not available from NWS, check title and detail for more information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Error:
+      required:
+        - status
+        - title
+        - detail
+      properties:
+        status:
+          type: integer
+          format: int32
+        title:
+          type: string
+        detail:
+          type: string
+    Success:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    WindRequest:
+      type: object
+      required:
+        - Latitude
+        - Longitude
+        - HubHeight
+        - WindSurface
+        - start
+        - end
+      properties:
+        Latitude:
+          description: In degree decimal format
+        Longitude:
+          description: In degree decimal format
+        HubHeight:
+          description: Height of turbine hub
+        WindSurface:
+          description: Area surface description as described in the NASA POWER docs
+        start:
+          description: Start date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+        end:
+          description: End date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+    AlaskaWindRequest:
+      type: object
+      required:
+        - lat
+        - lat_threshold
+        - lon
+        - lon_threshold
+        - HubHeight
+        - WindSurface
+        - start
+        - end
+      properties:
+        lat:
+          description: In degree decimal format
+        lat_threshold:
+          description: How far away from the inputted coordinates the sites can be latitude-wise. Defaults to 1.
+        lon:
+          description: In degree decimal format
+        lon_threshold:
+          description: How far away from the inputted coordinates the sites can be longitude-wise. Defaults to 1.
+        HubHeight:
+          description: Height of turbine hub
+        WindSurface:
+          description: Area surface description as described in the NASA POWER docs
+        start:
+          description: Start date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+        end:
+          description: End date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+    OpenWindRequest:
+      type: object
+      required:
+        - Latitude
+        - Longitude
+        - HubHeight
+        - WindSurface
+        - start
+        - end
+        - timeStep
+      properties:
+        Latitude:
+          description: In degree decimal format
+        Longitude:
+          description: In degree decimal format
+        HubHeight:
+          description: Height of turbine hub
+        WindSurface:
+          description: Area surface description as described in the NASA POWER docs
+        start:
+          description: Start date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+        end:
+          description: End date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+        timeStep:
+          description: How many time steps to call the OpenWeather API
+    data:
+      type: object
+      properties:
+        wind_speed:
+          type: object
+          description: Wind speed data from NASA POWER
+          properties:
+            YYYY-MM-DDTHH:MM:SSZ:
+              type: number
+              description: Data keyed by UTC timestamp
+        wind_direction:
+          type: object
+          description: Wind direction data from NASA POWER
+          properties:
+            YYYY-MM-DDTHH:MM:SSZ:
+              type: number
+              description: Data keyed by UTC timestamp
+    site_data:
+      type: object
+      properties:
+        sites:
+          type: array
+          items:
+            type: object
+            properties:
+              site_name:
+                type: string
+              latitude:
+                type: number
+              longitude:
+                type: number
+              elevation:
+                type: number
+              altitude:
+                type: number
+  parameters:
+    lat:
+      name: Latitude
+      in: query
+      description: In degree decimal format
+      required: true
+      schema:
+        type: number
+        minimum: -90
+        maximum: 90
+    lon:
+      name: Longitude
+      in: query
+      description: In degree decimal format
+      required: true
+      schema:
+        type: number
+        minimum: -180
+        maximum: 180
+    height:
+      name: HubHeight
+      in: query
+      description: Height of turbine hub
+      required: true
+      schema:
+        type: number
+        minimum: 0
+        maximum: 500
+    surface:
+      name: WindSurface
+      in: query
+      description: Area surface description as described in the NASA POWER docs
+      required: true
+      schema:
+        type: string
+        enum:
+          - vegtype_1
+          - vegtype_2
+          - vegtype_3
+          - vegtype_4
+          - vegtype_5
+          - vegtype_6
+          - vegtype_7
+          - vegtype_8
+          - vegtype_9
+          - vegtype_10
+          - vegtype_11
+          - vegtype_12
+          - vegtype_20
+          - openwater
+          - seaice
+          - airport_ice
+          - airportgrass
+    start:
+      name: start
+      in: query
+      description: Start date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+      required: true
+      schema:
+        type: string
+    end:
+      name: end
+      in: query
+      description: End date in UTC format ex. YYYY-MM-DDTHH:MM:SSZ
+      required: true
+      schema:
+        type: string
+    openWeather:
+      name: openWeather
+      in: query
+      description: Controls whether or not to call the OpenWeather API (Experimental Feature)
+      schema:
+        type: boolean
+    timeStep:
+      name: timeStep
+      in: query
+      description: How many time steps to call the OpenWeather API
+      schema:
+        type: integer
+    lat_threshold:
+      name: lat_threshold
+      in: query
+      description: How far away from the inputted coordinates the sites can be latitude-wise. Defaults to 1.
+      schema:
+        type: number
+        minimum: 0
+        maximum: 90
+    lon_threshold:
+      name: lon_threshold
+      in: query
+      description: How far away from the inputted coordinates the sites can be longitude-wise. Defaults to 1.
+      schema:
+        type: number
+        minimum: 0
+        maximum: 180

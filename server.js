@@ -8,7 +8,7 @@ const exp = require("constants");
 const pgp = require("pg-promise")();
 const swaggerUI = require("swagger-ui-express");
 const YAML = require("yamljs");
-const swaggerDocument = YAML.load("./swagger.yaml");
+const swaggerDocument = YAML.load("./api/swagger/swagger.yaml");
 const {
   yearRange,
   spacedList,
@@ -199,8 +199,8 @@ app.all("/api/search", function (req, res) {
               NASA: {
                 ...(nasa_data != null && {
                   data: {
-                    wind_speed: nasa_data.nasa_speed,
-                    wind_direction: nasa_data.nasa_direction,
+                    wind_speed: nasa_data.wind_speed,
+                    wind_direction: nasa_data.wind_direction,
                   },
                 }),
                 ...(nasa_errors != null && { errors: nasa_errors }),
@@ -316,7 +316,7 @@ app.get("/api/search/nasa_power", function (req, res) {
             ] = nasa_data[param][key];
           }
         }
-        res.json({ nasa_speed: nasa_speed, nasa_direction: nasa_direction });
+        res.json({ wind_speed: nasa_speed, wind_direction: nasa_direction });
       })
       .catch((nasa_error) => {
         var title_str = "";
@@ -335,8 +335,13 @@ app.get("/api/search/nasa_power", function (req, res) {
           detail_str = detail_str.substring(0, detail_str.length - 2);
         } else {
           title_str = nasa_error.response.data.header;
-          for (let i = 0; i < nasa_error.response.data.messages.length; i++) {
-            detail_str += nasa_error.response.data.messages[i] + " ";
+          console.log(nasa_error);
+          if (nasa_error.response.data.message) {
+            detail_str = nasa_error.response.data.message;
+          } else {
+            for (let i = 0; i < nasa_error.response.data.messages.length; i++) {
+              detail_str += nasa_error.response.data.messages[i] + " ";
+            }
           }
         }
         res.status(nasa_error.response.status);
@@ -690,25 +695,23 @@ app.get("/api/search/aea/wind_speed", (req, res) => {
         response_json[historic_response[i]["site_name"]]["historic_data"] = {
           wind_speed: {},
         };
-      } else {
-        if (
-          !(
-            historic_response[i].year in
-            response_json[historic_response[i]["site_name"]]["historic_data"][
-              "wind_speed"
-            ]
-          )
-        ) {
-          response_json[historic_response[i]["site_name"]]["historic_data"][
-            "wind_speed"
-          ][historic_response[i].year] = {};
-        } else {
-          response_json[historic_response[i]["site_name"]]["historic_data"][
-            "wind_speed"
-          ][historic_response[i].year][months[historic_response[i].month - 1]] =
-            historic_response[i].wind_speed;
-        }
       }
+      if (
+        !(
+          historic_response[i].year in
+          response_json[historic_response[i]["site_name"]]["historic_data"][
+            "wind_speed"
+          ]
+        )
+      ) {
+        response_json[historic_response[i]["site_name"]]["historic_data"][
+          "wind_speed"
+        ][historic_response[i].year] = {};
+      }
+      response_json[historic_response[i]["site_name"]]["historic_data"][
+        "wind_speed"
+      ][historic_response[i].year][months[historic_response[i].month - 1]] =
+        historic_response[i].wind_speed;
     }
     return response_json;
   }
