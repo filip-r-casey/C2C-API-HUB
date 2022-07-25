@@ -40,8 +40,13 @@ function missingParameterMessage(params, res, endpoint_name) {
   }
 }
 
+function isValidDate(d) {
+  return d instanceof Date && !isNaN(d);
+}
+
 module.exports = {
   yearRange: yearRange,
   spacedList: spacedList,
   missingParameterMessage: missingParameterMessage,
+  isValidDate: isValidDate,
 };
