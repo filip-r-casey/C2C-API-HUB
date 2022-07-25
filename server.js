@@ -13,7 +13,18 @@ const {
   yearRange,
   spacedList,
   missingParameterMessage,
+  isValidDate,
 } = require("./src/scripts/utilities");
+const {
+  nasa_power_call,
+  nasa_power_response_parse,
+  nasa_power_error_parse,
+  wind_toolkit_call,
+  wind_toolkit_response_parse,
+  wind_toolkit_error_parse,
+  open_weather_call,
+  open_weather_response_parse,
+} = require("./src/scripts/endpoints");
 const { stat } = require("fs");
 
 const HOST = "0.0.0.0";
@@ -94,48 +105,70 @@ app.all("/api/search", function (req, res) {
     var lon = req.query.Longitude;
     var height = req.query.HubHeight;
     var wind_surface = req.query.WindSurface;
-    var start_date = req.query.start;
-    var end_date = req.query.end;
+    var start_date = new Date(req.query.start).toISOString();
+    var end_date = new Date(req.query.end).toISOString();
     var open_weather_bool = req.query.openWeather === "true";
     var time_step = req.query.timeStep;
   } else if (req.method == "POST") {
-    var lat = req.body.Latitude;
-    var lon = req.body.Longitude;
-    var height = req.body.HubHeight;
+    var lat = String(req.body.Latitude);
+    var lon = String(req.body.Longitude);
+    var height = String(req.body.HubHeight);
     var wind_surface = req.body.WindSurface;
-    var start_date = req.body.start;
-    var end_date = req.body.end;
+    var start_date = new Date(req.body.start).toISOString();
+    var end_date = new Date(req.body.end).toISOString();
     var open_weather_bool = req.body.openWeather === "true";
     var time_step = req.body.timeStep;
   } else {
     res.json({ error: "Incompatible method" });
   }
-  var nasa = axios.get(
-    `http://0.0.0.0:3000/api/search/nasa_power?Latitude=${lat}&Longitude=${lon}&HubHeight=${height}&WindSurface=${wind_surface}&start=${start_date}&end=${end_date}`
-  );
-  var wind_toolkit = axios.get(
-    `http://0.0.0.0:3000/api/search/wind_toolkit?Latitude=${lat}&Longitude=${lon}&HubHeight=${height}&start=${start_date}&end=${end_date}`
-  );
-  var open_weather = axios.get(
-    `http://0.0.0.0:3000/api/search/open_weather?Latitude=${lat}&Longitude=${lon}&HubHeight=${height}&start=${start_date}&end=${end_date}&timeStep=${time_step}`
-  );
-  var nws = axios.get(
-    `http://0.0.0.0:3000/api/search/nws?Latitude=${lat}&Longitude=${lon}&start=${start_date}&end=${end_date}`
+
+  // NASA
+  nasa_promise = nasa_power_call(
+    lat,
+    lon,
+    height,
+    wind_surface,
+    start_date,
+    end_date,
+    res
   );
 
-  //Alaska Energy Authority API
-  aea = axios.get(
-    `http://0.0.0.0:3000/api/search/aea/wind_speed?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
-  );
+  // var wind_toolkit = axios.get(
+  //   `http://0.0.0.0:3000/api/search/wind_toolkit?Latitude=${lat}&Longitude=${lon}&HubHeight=${height}&start=${start_date}&end=${end_date}`
+  // );
+  // var open_weather = axios.get(
+  //   `http://0.0.0.0:3000/api/search/open_weather?Latitude=${lat}&Longitude=${lon}&HubHeight=${height}&start=${start_date}&end=${end_date}&timeStep=${time_step}`
+  // );
+  // var nws = axios.get(
+  //   `http://0.0.0.0:3000/api/search/nws?Latitude=${lat}&Longitude=${lon}&start=${start_date}&end=${end_date}`
+  // );
+
+  // //Alaska Energy Authority API
+  // aea = axios.get(
+  //   `http://0.0.0.0:3000/api/search/aea/wind_speed?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
+  // );
 
   // Find compatible sources
   var compatible_sources = {
-    nasa: nasa,
-    wind_toolkit: wind_toolkit,
-    nws: nws,
-    ...(open_weather_bool && { open_weather: open_weather }),
-    aea: aea,
+    nasa: nasa_promise,
+    // wind_toolkit: wind_toolkit,
+    // nws: nws,
+    // ...(open_weather_bool && { open_weather: open_weather }),
+    // aea: aea,
   };
+
+  // // console.log(
+  // //   `http://0.0.0.0:3000/api/search/nasa_power?Latitude=${lat}&Longitude=${lon}&HubHeight=${height}&WindSurface=${wind_surface}&start=${start_date}&end=${end_date}`
+  // // );
+  // // console.log(
+  // //   `http://0.0.0.0:3000/api/search/wind_toolkit?Latitude=${lat}&Longitude=${lon}&HubHeight=${height}&start=${start_date}&end=${end_date}`
+  // // );
+  // // console.log(
+  // //   `http://0.0.0.0:3000/api/search/nws?Latitude=${lat}&Longitude=${lon}&start=${start_date}&end=${end_date}`
+  // // );
+  // // console.log(
+  // //   `http://0.0.0.0:3000/api/search/aea/wind_speed?lat=${lat}&lon=${lon}&height=${height}&start_date=${start_date}&end_date=${end_date}`
+  // // );
 
   // API Call
   if (Object.keys(compatible_sources).length > 0) {
@@ -143,12 +176,20 @@ app.all("/api/search", function (req, res) {
       (promise_responses) => {
         if ("nasa" in compatible_sources) {
           var nasa_idx = Object.keys(compatible_sources).indexOf("nasa");
-          if (promise_responses[nasa_idx].status == "rejected") {
-            var nasa_errors =
-              promise_responses[nasa_idx].reason.response.data.errors;
+          if (promise_responses[nasa_idx] == "rejected") {
+            nasa_error = nasa_power_error_parse(
+              promise_responses[nasa_idx].reason
+            );
           } else {
-            var nasa_data = promise_responses[nasa_idx].value.data;
+            nasa_data = nasa_power_response_parse(response);
           }
+          // var nasa_idx = Object.keys(compatible_sources).indexOf("nasa");
+          // if (promise_responses[nasa_idx].status == "rejected") {
+          //   var nasa_errors =
+          //     promise_responses[nasa_idx].reason.response.data.errors;
+          // } else {
+          //   var nasa_data = promise_responses[nasa_idx].value.data;
+          // }
         }
         if ("wind_toolkit" in compatible_sources) {
           var wind_toolkit_idx =
@@ -257,161 +298,91 @@ app.all("/api/search", function (req, res) {
 
 app.get("/api/search/nasa_power", function (req, res) {
   if (req.method == "GET") {
-    var lat = req.query.Latitude;
-    var lon = req.query.Longitude;
-    var height = req.query.HubHeight;
-    var wind_surface = req.query.WindSurface;
-    var start_date = req.query.start;
-    var end_date = req.query.end;
+    var req_path = "query";
   } else if (req.method == "POST") {
-    var lat = req.body.Latitude;
-    var lon = req.body.Longitude;
-    var height = req.body.HubHeight;
-    var wind_surface = req.body.WindSurface;
-    var start_date = req.body.start;
-    var end_date = req.body.end;
+    var req_path = "body";
   } else {
     res.json({ error: "Incompatible method" });
   }
-  if (lat && lon && height && wind_surface && start_date && end_date) {
-    var formatted_start_date =
-      start_date.slice(0, 4) + start_date.slice(5, 7) + start_date.slice(8, 10);
-    var formatted_end_date =
-      end_date.slice(0, 4) + end_date.slice(5, 7) + end_date.slice(8, 10);
-    if (height < 30) {
-      // Sets keyword based on where the height is closest to
-      var param = "WD50M";
-    } else if (height < 6) {
-      var param = "WD10M";
-    } else {
-      var param = "WD2M";
-    }
-    var nasa = axios.get(
-      `https://power.larc.nasa.gov/api/temporal/hourly/point?community=RE&parameters=${param},WSC&latitude=${lat}&longitude=${lon}&start=${formatted_start_date}&end=${formatted_end_date}&format=JSON&wind-elevation=${height}&wind-surface=${wind_surface}`
-    );
-    nasa
-      .then((nasa_response) => {
-        var nasa_speed = {};
-        var nasa_direction = {};
-        if (nasa_response.status != 200) {
-          var nasa_errors = nasa_response.reason.response.data.errors;
-        } else {
-          nasa_data = nasa_response.data.properties.parameter;
-          for (const [key, value] of Object.entries(nasa_data.WSC)) {
-            nasa_speed[
-              new Date(
-                parseInt(key.slice(0, 4)),
-                parseInt(key.slice(4, 6)) - 1,
-                parseInt(key.slice(6, 8)),
-                parseInt(key.slice(8, 10))
-              ).toISOString()
-            ] = value;
-            nasa_direction[
-              new Date(
-                parseInt(key.slice(0, 4)),
-                parseInt(key.slice(4, 6)) - 1,
-                parseInt(key.slice(6, 8)),
-                parseInt(key.slice(8, 10))
-              ).toISOString()
-            ] = nasa_data[param][key];
-          }
-        }
-        res.json({ wind_speed: nasa_speed, wind_direction: nasa_direction });
+  var lat = req[req_path].Latitude;
+  var lon = req[req_path].Longitude;
+  var height = req[req_path].HubHeight;
+  var wind_surface = req[req_path].WindSurface;
+  var start_date = req[req_path].start;
+  var end_date = req[req_path].end;
+  params = {
+    Latitude: lat,
+    Longitude: lon,
+    HubHeight: height,
+    WindSurface: wind_surface,
+    start: start_date,
+    end: end_date,
+  };
+  if (!(lat && lon && height && wind_surface && start_date && end_date)) {
+    missingParameterMessage(params, res, "/nasa_power");
+    return;
+  }
+  nasa_promise = nasa_power_call(
+    lat,
+    lon,
+    height,
+    wind_surface,
+    start_date,
+    end_date,
+    res
+  );
+  if (nasa_promise) {
+    nasa_promise
+      .then((response) => {
+        json_response = nasa_power_response_parse(response);
+        res.status(json_response["status"]);
+        res.json(json_response["response"]);
       })
-      .catch((nasa_error) => {
-        var title_str = "";
-        var detail_str = "";
-        if ("detail" in nasa_error.response.data) {
-          // Checks for an error with the date string
-          title_str = nasa_error.response.data.detail[0].msg;
-          detail_str = "Invalid value at: ";
-          for (
-            let i = 0;
-            i < nasa_error.response.data.detail[0].loc.length;
-            i++
-          ) {
-            detail_str += nasa_error.response.data.detail[0].loc[i] + ", ";
-          }
-          detail_str = detail_str.substring(0, detail_str.length - 2);
-        } else {
-          title_str = nasa_error.response.data.header;
-          console.log(nasa_error);
-          if (nasa_error.response.data.message) {
-            detail_str = nasa_error.response.data.message;
-          } else {
-            for (let i = 0; i < nasa_error.response.data.messages.length; i++) {
-              detail_str += nasa_error.response.data.messages[i] + " ";
-            }
-          }
-        }
-        res.status(nasa_error.response.status);
-        res.json({
-          errors: [
-            {
-              status: nasa_error.response.status,
-              title: title_str,
-              detail: detail_str,
-            },
-          ],
-        });
+      .catch((error) => {
+        json_error = nasa_power_error_parse(error);
+        res.status(json_error["status"]);
+        res.json(json_error["response"]);
       });
   } else {
-    var params = {
-      Latitude: lat,
-      Longitude: lon,
-      HubHeight: height,
-      WindSurface: wind_surface,
-      start: start_date,
-      end: end_date,
-    };
-    missingParameterMessage(params, res);
+    return;
   }
 });
 
 app.get("/api/search/wind_toolkit", function (req, res) {
   if (req.method == "GET") {
-    var lat = req.query.Latitude;
-    var lon = req.query.Longitude;
-    var height = req.query.HubHeight;
-    var start_date = req.query.start;
-    var end_date = req.query.end;
+    var req_path = "query";
   } else if (req.method == "POST") {
-    var lat = req.body.Latitude;
-    var lon = req.body.Longitude;
-    var height = req.body.HubHeight;
-    var start_date = req.body.start;
-    var end_date = req.body.end;
+    var req_path = "body";
   } else {
     res.json({ error: "Incompatible method" });
   }
-  if (lat && lon && height && start_date && end_date) {
-    function isValidDate(d) {
-      return d instanceof Date && !isNaN(d);
-    }
-    if (
-      isValidDate(new Date(start_date)) &&
-      isValidDate(new Date(start_date))
-    ) {
-      var begin_year = new Date(start_date).getFullYear();
-      var end_year = new Date(end_date).getFullYear();
+  var lat = req[req_path].Latitude;
+  var lon = req[req_path].Longitude;
+  var height = req[req_path].HubHeight;
+  var start_date = req[req_path].start;
+  var end_date = req[req_path].end;
+  var params = {
+    Latitude: lat,
+    Longitude: lon,
+    HubHeight: height,
+    start: start_date,
+    end: end_date,
+  };
+  if (!(lat && lon && height && start_date && end_date)) {
+    missingParameterMessage(params, res, "/nasa_power");
+    return;
+  }
+
+  if (isValidDate(new Date(start_date)) && isValidDate(new Date(start_date))) {
+    if (lat > -90 && lat < 90 && lon > -180 && lon < 180) {
+      var wind_toolkit = wind_toolkit_call(
+        lat,
+        lon,
+        height,
+        start_date,
+        end_date
+      );
     } else {
-      res.status(400);
-      res.json({
-        errors: [
-          {
-            status: 400,
-            title: "Invalid Date",
-            detail: "Date must be in the format YYYY-MM-DDT00:00:00Z",
-          },
-        ],
-      });
-      return;
-    }
-    var heights = [10, 40, 60, 80, 100, 120, 140, 160, 200];
-    var closest = heights.reduce(function (prev, curr) {
-      return Math.abs(curr - height) < Math.abs(prev - height) ? curr : prev;
-    });
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
       res.status(400);
       res.json({
         errors: [
@@ -423,147 +394,49 @@ app.get("/api/search/wind_toolkit", function (req, res) {
           },
         ],
       });
-      return;
     }
-    var wind_toolkit = axios.get(
-      `https://developer.nrel.gov/api/wind-toolkit/v2/wind/wtk-download.json?api_key=${
-        process.env.WIND_TOOLKIT_API_KEY
-      }&wkt=POINT(${lon} ${lat})&attributes=windspeed_${closest}m,winddirection_${closest}m&names=${spacedList(
-        yearRange(begin_year, end_year)
-      )}&email=${process.env.EMAIL}`
-    );
-    wind_toolkit
-      .then((wind_toolkit_response) => {
-        res.json({ url: wind_toolkit_response.data.outputs.downloadUrl });
-      })
-      .catch((wind_toolkit_error) => {
-        res.status(wind_toolkit_error.response.status);
-        if (
-          !("errors" in wind_toolkit_error.response.data) &&
-          wind_toolkit_error.response.data.error.code == "OVER_RATE_LIMIT"
-        ) {
-          res.json({
-            errors: [
-              {
-                status: wind_toolkit_error.response.data.status,
-                title: "Exceeded Rate Limit",
-                detail: wind_toolkit_error.response.data.error.message,
-              },
-            ],
-          });
-        } else {
-          res.json({
-            errors: [
-              {
-                status: wind_toolkit_error.response.data.status,
-                title: "Wind Toolkit Error",
-                detail: wind_toolkit_error.response.data.errors[0],
-              },
-            ],
-          });
-        }
-      });
   } else {
-    var params = {
-      Latitude: lat,
-      Longitude: lon,
-      HubHeight: height,
-      start: start_date,
-      end: end_date,
-    };
-    missingParameterMessage(params, res);
+    res.status(400);
+    res.json({
+      errors: [
+        {
+          status: 400,
+          title: "Invalid Date",
+          detail: "Date must be in the format YYYY-MM-DDT00:00:00Z",
+        },
+      ],
+    });
+    return;
   }
+  wind_toolkit
+    .then((wind_toolkit_response) => {
+      json_response = wind_toolkit_response_parse(wind_toolkit_response);
+      res.status(json_response["status"]);
+      res.json(json_response["response"]);
+    })
+    .catch((wind_toolkit_error) => {
+      json_error = wind_toolkit_error_parse(wind_toolkit_error);
+      res.status(json_error["status"]);
+      res.json(json_error["response"]);
+    });
 });
 
 app.get("/api/search/open_weather", function (req, res) {
   if (req.method == "GET") {
-    var lat = req.query.Latitude;
-    var lon = req.query.Longitude;
-    var height = req.query.HubHeight;
-    var start_date = req.query.start;
-    var end_date = req.query.end;
-    var time_step = req.query.timeStep;
+    var req_path = "query";
   } else if (req.method == "POST") {
-    var lat = req.body.Latitude;
-    var lon = req.body.Longitude;
-    var height = req.body.HubHeight;
-    var start_date = req.body.start;
-    var end_date = req.body.end;
-    var time_step = req.body.timeStep;
+    var req_path = "body";
   } else {
     res.json({ error: "Incompatible method" });
-    return;
   }
-  if (lat && lon && height && start_date && end_date && time_step) {
-    var first_date = new Date(start_date).getTime();
-    var last_date = new Date(end_date).getTime();
-    var diffTime = Math.abs(last_date - first_date);
-    var increment_time = diffTime / time_step;
-    var open_weather_requests = [];
-    var open_weather_data = {};
-    for (var i = first_date; i < last_date; i += increment_time) {
-      open_weather_requests.push(
-        axios.get(
-          `https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=${lat}&lon=${lon}&dt=${Math.floor(
-            i / 1000
-          )}&appid=${process.env.OPEN_WEATHER_API_KEY}`
-        )
-      );
-    }
-    if (open_weather_requests.length > 0) {
-      Promise.allSettled(open_weather_requests).then(
-        (open_weather_response) => {
-          var open_weather_promises = [];
-          var open_weather_errors = [];
-          for (var i = 0; i < open_weather_response.length; i++) {
-            if (open_weather_response[i].status == "fulfilled") {
-              if (
-                open_weather_response[i].value.headers.server == "openresty"
-              ) {
-                open_weather_promises.push(open_weather_response[i]);
-              }
-            } else if (
-              open_weather_response[i].reason.response.headers.server ==
-              "openresty"
-            ) {
-              open_weather_errors.push(open_weather_response[i]);
-            }
-          }
-          if (open_weather_errors.length <= 0) {
-            open_weather_errors = null;
-          }
-          open_weather_data["wind_speed"] = {};
-          open_weather_data["wind_direction"] = {};
-          for (var i = 0; i < open_weather_promises.length; i++) {
-            open_weather_data["wind_speed"][
-              new Date(
-                open_weather_promises[i].value.data.data[0].dt * 1000
-              ).toISOString()
-            ] = open_weather_promises[i].value.data.data[0].wind_speed;
-            open_weather_data["wind_direction"][
-              new Date(
-                open_weather_promises[i].value.data.data[0].dt * 1000
-              ).toISOString()
-            ] = open_weather_promises[i].value.data.data[0].wind_deg;
-          }
-          if (open_weather_errors) {
-            res.status(open_weather_errors[0].reason.response.status);
-            res.json({
-              errors: [
-                {
-                  status: open_weather_errors[0].reason.response.status,
-                  title: open_weather_errors[0].reason.response.statusText,
-                  detail: open_weather_errors[0].reason.response.data.message,
-                },
-              ],
-            });
-          } else {
-            res.json(open_weather_data);
-          }
-        }
-      );
-    }
-  } else {
+  var lat = req[req_path].Latitude;
+  var lon = req[req_path].Longitude;
+  var height = req[req_path].HubHeight;
+  var start_date = req[req_path].start;
+  var end_date = req[req_path].end;
+  var time_step = req[req_path].timeStep;
+
+  if (!(lat && lon && height && start_date && end_date && time_step)) {
     var params = {
       Latitude: lat,
       Longitude: lon,
@@ -573,6 +446,23 @@ app.get("/api/search/open_weather", function (req, res) {
       timeStep: time_step,
     };
     missingParameterMessage(params, res);
+    return;
+  }
+  var open_weather_data = {};
+  open_weather_requests = open_weather_call(
+    lat,
+    lon,
+    height,
+    start_date,
+    end_date,
+    time_step
+  );
+  if (open_weather_requests.length > 0) {
+    Promise.allSettled(open_weather_requests).then((open_weather_response) => {
+      var json_response = open_weather_response_parse(open_weather_response);
+      res.status(json_response["status"]);
+      res.json(json_response["response"]);
+    });
   }
 });
 
