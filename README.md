@@ -1,4 +1,6 @@
-# Communities to Clean API Hub
+# DEPRECATED:Communities to Clean API Hub
+
+## For updated git repo: https://github.com/filip-r-casey/C2C-Data-Platform
 
 ## Description
 
