@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "jest --silent=false ./tests",
-    "start": "nodemon --ext js,yaml server.js"
+    "start": "nodemon --ext js,yaml server.js",
+    "serve": "vue-cli-service serve"
   },
   "dependencies": {
     "axios": "^0.27.2",
@@ -18,7 +19,8 @@
     "swagger-jsdoc": "^6.2.1",
     "swagger-ui": "^4.12.0",
     "swagger-ui-express": "^4.5.0",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "vue": "^3.2.13"
   },
   "devDependencies": {
     "jest": "^28.1.2",

@@ -27,6 +27,11 @@ const {
 } = require("./src/scripts/endpoints");
 const { stat } = require("fs");
 
+import { createApp } from "vue";
+import App from "./src/App.vue";
+
+createApp(App).mount("#app");
+
 const HOST = "0.0.0.0";
 const credentials = {
   host: HOST,
